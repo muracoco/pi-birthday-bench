@@ -17,14 +17,20 @@ pi = 3.1415926535...
 
 ## 使い方
 
+Windows で `rug` / GMP 系依存を使うため、現時点では MSYS2 MinGW と Rust GNU toolchain でのビルドを前提にしています。
+
+```powershell
+rustup toolchain install stable-x86_64-pc-windows-gnu
+```
+
 ```bash
-cargo run --release -- --target 19930628 --max-digits 1000000 --backend cpu-single
+cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cpu-single
 ```
 
 進捗を抑制する場合:
 
 ```bash
-cargo run --release -- --target 20240628 --max-digits 1000000 --chunk 100000 --backend cpu-single --no-progress
+cargo +stable-x86_64-pc-windows-gnu run --release -- --target 20240628 --max-digits 1000000 --chunk 100000 --backend cpu-single --no-progress
 ```
 
 ## オプション

@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use rug::{ops::Pow, Integer};
+use rug::{ops::Pow, Complete, Integer};
 
 const DIGITS_PER_TERM: usize = 14;
 const GUARD_DIGITS: usize = 20;
@@ -23,9 +23,12 @@ pub fn compute_pi_fractional_digits(requested_digits: usize) -> Result<String> {
     let scale = Integer::from(10).pow(internal_digits as u32);
     let sqrt_arg = Integer::from(10005) * Integer::from(&scale).pow(2);
     let sqrt = sqrt_arg.sqrt();
-    let scaled_pi = q * 426_880 * sqrt / t;
+    let mut scaled_pi = q;
+    scaled_pi *= 426_880;
+    scaled_pi *= sqrt;
+    scaled_pi /= t;
 
-    let mut digits = scaled_pi.to_string_radix(10);
+    let mut digits = scaled_pi.to_string();
     if digits.len() < internal_digits + 1 {
         let padding = "0".repeat(internal_digits + 1 - digits.len());
         digits = format!("{padding}{digits}");
@@ -59,9 +62,10 @@ fn binary_split(a: u32, b: u32) -> (Integer, Integer, Integer) {
     let (p1, q1, t1) = binary_split(a, mid);
     let (p2, q2, t2) = binary_split(mid, b);
 
-    let p = &p1 * &p2;
-    let q = &q1 * &q2;
-    let t = &q2 * t1 + &p1 * t2;
+    let p: Integer = (&p1 * &p2).complete();
+    let q: Integer = (&q1 * &q2).complete();
+    let mut t: Integer = &q2 * t1;
+    t += &p1 * t2;
 
     (p, q, t)
 }
