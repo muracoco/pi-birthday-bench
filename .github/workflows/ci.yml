@@ -34,7 +34,8 @@ jobs:
         shell: pwsh
         run: rustup toolchain install stable-x86_64-pc-windows-gnu --profile minimal
       - name: Test
-        shell: pwsh
+        shell: msys2 {0}
         run: |
-          pkg-config --version
+          which pkg-config
+          which cargo
           cargo +stable-x86_64-pc-windows-gnu test
