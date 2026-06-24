@@ -234,6 +234,7 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "clap",
+ "gmp-mpfr-sys",
  "predicates",
  "rug",
 ]
