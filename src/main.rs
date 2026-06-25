@@ -4,6 +4,7 @@ use std::sync::atomic::AtomicBool;
 use anyhow::{bail, Result};
 use clap::{Parser, ValueEnum};
 
+use pi_birthday_bench::backend::backend_list_text;
 use pi_birthday_bench::job::run_job;
 use pi_birthday_bench::result::{BackendMode as CoreBackendMode, ProgressEvent, RunConfig};
 
@@ -76,7 +77,7 @@ fn run() -> Result<()> {
     let cli = Cli::parse();
 
     if cli.list_backends {
-        println!("{}", list_backends_text());
+        println!("{}", backend_list_text());
         return Ok(());
     }
 
@@ -125,46 +126,4 @@ fn run() -> Result<()> {
     }
 
     Ok(())
-}
-
-fn list_backends_text() -> String {
-    [
-        "available backends:",
-        "- cpu-single: available",
-        "- cpu-multi: unavailable, not implemented",
-        cuda_backend_status("cuda-compute"),
-        cuda_backend_status("cuda-search-only"),
-        feature_backend_status("hip", cfg!(feature = "hip")),
-        feature_backend_status("opencl", cfg!(feature = "opencl")),
-        feature_backend_status("vulkan", cfg!(feature = "vulkan")),
-    ]
-    .join("\n")
-}
-
-fn cuda_backend_status(name: &str) -> &'static str {
-    match (name, cfg!(feature = "cuda")) {
-        ("cuda-compute", true) => {
-            "- cuda-compute: unavailable, cuda feature enabled but not implemented"
-        }
-        ("cuda-compute", false) => "- cuda-compute: unavailable, build with --features cuda",
-        ("cuda-search-only", true) => {
-            "- cuda-search-only: unavailable, cuda feature enabled but not implemented"
-        }
-        ("cuda-search-only", false) => {
-            "- cuda-search-only: unavailable, build with --features cuda"
-        }
-        _ => unreachable!("unknown cuda backend"),
-    }
-}
-
-fn feature_backend_status(name: &str, feature_enabled: bool) -> &'static str {
-    match (name, feature_enabled) {
-        ("hip", true) => "- hip: unavailable, hip feature enabled but not implemented",
-        ("hip", false) => "- hip: unavailable, build with --features hip",
-        ("opencl", true) => "- opencl: unavailable, opencl feature enabled but not implemented",
-        ("opencl", false) => "- opencl: unavailable, build with --features opencl",
-        ("vulkan", true) => "- vulkan: unavailable, vulkan feature enabled but not implemented",
-        ("vulkan", false) => "- vulkan: unavailable, build with --features vulkan",
-        _ => unreachable!("unknown backend"),
-    }
 }

@@ -122,6 +122,7 @@ pub struct BenchmarkResult {
     pub elapsed_seconds: f64,
     pub digits_per_second: f64,
     pub chunks_processed: usize,
+    pub gpu_role: String,
 }
 
 impl BenchmarkResult {
@@ -167,7 +168,7 @@ impl BenchmarkResult {
             "threads": null,
             "cpu_model": null,
             "gpu_name": null,
-            "gpu_role": "none",
+            "gpu_role": self.gpu_role.as_str(),
             "memory_peak_mb": null,
             "verification_status": "skipped",
         })
@@ -234,6 +235,7 @@ mod tests {
             elapsed_seconds: 12.34,
             digits_per_second: 1_620_745.5,
             chunks_processed: 20,
+            gpu_role: "none".to_owned(),
         };
 
         let value: serde_json::Value = serde_json::from_str(&result.as_json()).expect("valid JSON");

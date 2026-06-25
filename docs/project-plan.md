@@ -209,6 +209,9 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - GUI feature gate と Windows GUI 用 wgpu DX12 backend
 - GPU backend stubs
 - `cuda` / `hip` / `opencl` / `vulkan` feature flags
+- backend abstraction の導入
+- backend metadata / backend listing の共通化
+- 検索ロジックの共通化
 
 未実装:
 
@@ -216,7 +219,6 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - `cpu-multi`
 - GPU backend implementation
 - system information collection
-- backend trait の本格導入
 
 ## 完了済みIssue
 
@@ -230,21 +232,21 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - #9 Add benchmark-only mode
 - #13 Implement --list-backends
 - #14 Add GPU backend stubs and feature flags
+- #7 Introduce backend abstraction
 
 #1 に元々含まれていた `--json`、`--benchmark-only`、`--threads`、`--list-backends`、`--verify` は、個別Issueで追跡する。
 
 ## 残Issueの優先順位
 
-1. #7 Introduce backend abstraction
-2. #8 Implement CPU multi backend
-3. #19 Add verification mode
-4. #11 Add progress reporting
-5. #12 Add system information collection
-6. #20 Add result schema and benchmark examples
-7. #16 Document GPU compute limitations
-8. #15 Implement CUDA search-only prototype
-9. #17 Research CUDA compute backend
-10. #18 Research AMD GPU support
+1. #8 Implement CPU multi backend
+2. #19 Add verification mode
+3. #11 Add progress reporting
+4. #12 Add system information collection
+5. #20 Add result schema and benchmark examples
+6. #16 Document GPU compute limitations
+7. #15 Implement CUDA search-only prototype
+8. #17 Research CUDA compute backend
+9. #18 Research AMD GPU support
 
 #10 を先に実装した理由は、benchmark-only、cpu-multi、GPU比較の前に出力schemaを固定しておくためである。測定結果の比較形式が先に安定していれば、後続Issueの検証とREADME例が揺れにくい。
 
@@ -254,7 +256,9 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 
 #14 を #13 の次に実装した理由は、`--list-backends` の出力と整合する形で、選択時の明確な unavailable / not implemented エラーを整えるためである。
 
-次の実装候補は #7 backend abstraction とする。GPU stubまで入ったため、次にCLI/job分岐をbackend追加に耐える構造へ整理する。
+backend abstraction はコード上では導入済みである。GitHub Issue #7 は、実装内容と検証結果を確認してから別途クローズする。
+
+次の実装候補は #8 CPU multi backend とする。backend abstraction と GPU stub が入ったため、次に CPU multi を追加しても CLI/job 分岐を大きく書き換えない構造になっている。
 
 GPUは後回しにする。現時点では CPU single、JSON schema、benchmark-only、backend discovery、backend selector/stub が先に必要であり、GPU実装に踏み込むと進捗、検証、ビルド環境、結果比較の論点が同時に増えるためである。
 
