@@ -6,9 +6,7 @@ use std::time::Instant;
 use eframe::egui;
 use pi_birthday_bench::date::validate_yyyymmdd;
 use pi_birthday_bench::job::run_job;
-use pi_birthday_bench::result::{
-    BackendMode, BenchmarkResult, ProgressEvent, RunConfig, RunPhase,
-};
+use pi_birthday_bench::result::{BackendMode, BenchmarkResult, ProgressEvent, RunConfig, RunPhase};
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
@@ -223,7 +221,9 @@ impl GuiApp {
         });
 
         ui.add(egui::ProgressBar::new(progress).show_percentage());
-        ui.label("Cancellation during computing_pi may take effect only after that phase finishes.");
+        ui.label(
+            "Cancellation during computing_pi may take effect only after that phase finishes.",
+        );
     }
 
     fn render_result(&mut self, ui: &mut egui::Ui) {

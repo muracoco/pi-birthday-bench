@@ -79,8 +79,12 @@ impl RunConfig {
 
 #[derive(Debug, Clone)]
 pub enum ProgressEvent {
-    Started { config: RunConfig },
-    PhaseChanged { phase: RunPhase },
+    Started {
+        config: RunConfig,
+    },
+    PhaseChanged {
+        phase: RunPhase,
+    },
     Progress {
         digits_computed: usize,
         elapsed_seconds: f64,
@@ -132,7 +136,6 @@ chunks_processed: {}",
     }
 }
 
-#[cfg(feature = "gui")]
 impl BenchmarkResult {
     pub fn as_json(&self) -> String {
         serde_json::json!({
@@ -145,6 +148,12 @@ impl BenchmarkResult {
             "elapsed_seconds": self.elapsed_seconds,
             "digits_per_second": self.digits_per_second,
             "chunks_processed": self.chunks_processed,
+            "threads": null,
+            "cpu_model": null,
+            "gpu_name": null,
+            "gpu_role": "none",
+            "memory_peak_mb": null,
+            "verification_status": "skipped",
         })
         .to_string()
     }
@@ -152,7 +161,7 @@ impl BenchmarkResult {
 
 #[cfg(test)]
 mod tests {
-    use super::{BackendMode, RunConfig};
+    use super::{BackendMode, BenchmarkResult, RunConfig};
 
     #[test]
     fn run_config_accepts_valid_values() {
@@ -191,5 +200,36 @@ mod tests {
             backend: BackendMode::CpuSingle,
         };
         assert!(zero_chunk.validate().is_err());
+    }
+
+    #[test]
+    fn benchmark_result_json_contains_stable_fields() {
+        let result = BenchmarkResult {
+            target: "19930628".to_owned(),
+            found: true,
+            first_position: Some(12_345_678),
+            backend: "cpu-single".to_owned(),
+            algorithm: "chudnovsky_binary_splitting".to_owned(),
+            digits_computed: 20_000_000,
+            elapsed_seconds: 12.34,
+            digits_per_second: 1_620_745.5,
+            chunks_processed: 20,
+        };
+
+        let value: serde_json::Value = serde_json::from_str(&result.as_json()).expect("valid JSON");
+
+        assert_eq!(value["target"], "19930628");
+        assert_eq!(value["found"], true);
+        assert_eq!(value["first_position"], 12_345_678);
+        assert_eq!(value["backend"], "cpu-single");
+        assert_eq!(value["algorithm"], "chudnovsky_binary_splitting");
+        assert_eq!(value["digits_computed"], 20_000_000);
+        assert_eq!(value["chunks_processed"], 20);
+        assert!(value["threads"].is_null());
+        assert!(value["cpu_model"].is_null());
+        assert!(value["gpu_name"].is_null());
+        assert_eq!(value["gpu_role"], "none");
+        assert!(value["memory_peak_mb"].is_null());
+        assert_eq!(value["verification_status"], "skipped");
     }
 }

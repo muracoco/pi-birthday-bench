@@ -64,17 +64,18 @@ CLI で指定する探索対象は `YYYYMMDD` の8桁とする。
 pi-birthday-bench --target 19930628 --max-digits 200000000 --chunk 1000000 --backend cpu-single
 pi-birthday-bench --target 19930628 --max-digits 200000000 --chunk 1000000 --backend cpu-multi --threads 12
 pi-birthday-bench --target 19930628 --max-digits 200000000 --chunk 1000000 --backend cuda-search-only
+pi-birthday-bench --target 19930628 --max-digits 1000000 --backend cpu-single --json
 ```
 
-将来オプション:
+現行または将来オプション:
 
 - `--target YYYYMMDD`
 - `--max-digits N`
 - `--chunk N`
 - `--backend MODE`
-- `--threads N`
 - `--json`
 - `--no-progress`
+- `--threads N`
 - `--verify`
 - `--benchmark-only`
 - `--list-backends`
@@ -107,6 +108,28 @@ GPU バックエンドは必ず `gpu_role` を表示する。
 - `search_only`
 - `pi_compute`
 - `unavailable`
+
+JSON 出力では、現時点で取得できるフィールドを安定schemaとして出す。未実装機能に依存する値は段階的に埋める。
+
+```json
+{
+  "target": "19930628",
+  "found": false,
+  "first_position": null,
+  "backend": "cpu-single",
+  "algorithm": "chudnovsky_binary_splitting",
+  "digits_computed": 1000000,
+  "elapsed_seconds": 1.637722,
+  "digits_per_second": 610604.1,
+  "chunks_processed": 1,
+  "threads": null,
+  "cpu_model": null,
+  "gpu_name": null,
+  "gpu_role": "none",
+  "memory_peak_mb": null,
+  "verification_status": "skipped"
+}
+```
 
 ## 5. バックエンド設計
 
@@ -161,5 +184,75 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 
 - GPU 対応
 - CPU multi
-- JSON 出力
 - benchmark-only
+
+## 現在の実装ステータス
+
+現在のコードは v0.1.5 相当である。
+
+実装済み:
+
+- CLI skeleton
+- `--target`
+- `--max-digits`
+- `--chunk`
+- `--backend cpu-single`
+- `--no-progress`
+- `--json`
+- `YYYYMMDD` validation
+- CPU single による実行時 pi 計算
+- 小数部のみの検索
+- chunk 境界をまたぐ検索
+- CLI/GUI 共通の `run_job`
+- eframe/egui GUI
+- GUI feature gate と Windows GUI 用 wgpu DX12 backend
+
+未実装:
+
+- `--benchmark-only`
+- `--verify`
+- `--list-backends`
+- `cpu-multi`
+- GPU backend selector / stub
+- system information collection
+- backend trait の本格導入
+
+## 完了済みIssue
+
+- #1 Create Rust CLI project skeleton
+- #2 Implement YYYYMMDD date validation
+- #3 Implement CPU single pi calculation
+- #4 Implement pattern search with chunk overlap
+- #5 Connect CPU single backend to CLI search
+- #6 Add README basic documentation
+- #10 Add JSON output
+
+#1 に元々含まれていた `--json`、`--benchmark-only`、`--threads`、`--list-backends`、`--verify` は、個別Issueで追跡する。
+
+## 残Issueの優先順位
+
+1. #9 Add benchmark-only mode
+2. #13 Implement --list-backends
+3. #14 Add GPU backend stubs and feature flags
+4. #7 Introduce backend abstraction
+5. #8 Implement CPU multi backend
+6. #19 Add verification mode
+7. #11 Add progress reporting
+8. #12 Add system information collection
+9. #20 Add result schema and benchmark examples
+10. #16 Document GPU compute limitations
+11. #15 Implement CUDA search-only prototype
+12. #17 Research CUDA compute backend
+13. #18 Research AMD GPU support
+
+#10 を先に実装した理由は、benchmark-only、cpu-multi、GPU比較の前に出力schemaを固定しておくためである。測定結果の比較形式が先に安定していれば、後続Issueの検証とREADME例が揺れにくい。
+
+次の実装候補は #9 benchmark-only mode とする。JSON出力がある状態で実装すると、target発見後も走り切った測定結果を記録しやすい。
+
+GPUは後回しにする。現時点では CPU single、JSON schema、benchmark-only、backend selector/stub が先に必要であり、GPU実装に踏み込むと進捗、検証、ビルド環境、結果比較の論点が同時に増えるためである。
+
+## 変更時の同期ルール
+
+コード、CLI仕様、GUI仕様、出力形式、ビルド設定、CI、依存関係、feature flag、バックエンド、テスト仕様を変更した場合は、関連するREADME、docs、GitHub Issue、テスト、CI設定、使用例、計画書を確認し、実装内容と記述内容の不一致を解消する。
+
+作業完了時は、変更したファイルだけでなく、確認したが変更不要だった関連ファイルも簡潔に報告する。

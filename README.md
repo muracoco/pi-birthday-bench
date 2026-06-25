@@ -33,6 +33,38 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
 cargo +stable-x86_64-pc-windows-gnu run --release -- --target 20240628 --max-digits 1000000 --chunk 100000 --backend cpu-single --no-progress
 ```
 
+JSONだけを標準出力に出す場合:
+
+```bash
+cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cpu-single --json
+```
+
+`--json` 指定時、標準出力にはJSONだけを出します。進捗やphase表示は混ぜません。
+
+出力例:
+
+```json
+{
+  "algorithm": "chudnovsky_binary_splitting",
+  "backend": "cpu-single",
+  "chunks_processed": 1,
+  "cpu_model": null,
+  "digits_computed": 1000000,
+  "digits_per_second": 610604.1,
+  "elapsed_seconds": 1.637722,
+  "first_position": null,
+  "found": false,
+  "gpu_name": null,
+  "gpu_role": "none",
+  "memory_peak_mb": null,
+  "target": "19930628",
+  "threads": null,
+  "verification_status": "skipped"
+}
+```
+
+現時点では `threads`、`cpu_model`、`gpu_name`、`memory_peak_mb` は未取得なら `null` です。GPUは未実装のため `gpu_role` は `none`、`verify` は未実装のため `verification_status` は `skipped` です。
+
 ## GUI usage
 
 GUIは `eframe` / `egui` を使うRust-native GUIです。CLIをサブプロセス起動せず、CLIと同じ中核ジョブ処理を呼びます。
@@ -62,7 +94,6 @@ GUIでまだできないこと:
 
 - `cpu-multi`
 - `benchmark-only`
-- CLI `--json`
 - GPU backend selector
 
 ## オプション
@@ -72,6 +103,7 @@ GUIでまだできないこと:
 - `--chunk N`: 検索単位。既定値は `1000000` です。
 - `--backend cpu-single`: v0.1 では `cpu-single` のみ対応します。
 - `--no-progress`: 進捗表示を抑制します。
+- `--json`: 結果をJSONだけで標準出力に出します。
 
 ## 注意
 

@@ -38,6 +38,9 @@ struct Cli {
 
     #[arg(long)]
     no_progress: bool,
+
+    #[arg(long)]
+    json: bool,
 }
 
 fn main() -> ExitCode {
@@ -61,7 +64,7 @@ fn run() -> Result<()> {
     let cancel_requested = AtomicBool::new(false);
 
     let result = run_job(config, &cancel_requested, |event| {
-        if cli.no_progress {
+        if cli.no_progress || cli.json {
             return;
         }
 
@@ -82,7 +85,11 @@ fn run() -> Result<()> {
         }
     })?;
 
-    println!("{}", result.as_text());
+    if cli.json {
+        println!("{}", result.as_json());
+    } else {
+        println!("{}", result.as_text());
+    }
 
     Ok(())
 }
