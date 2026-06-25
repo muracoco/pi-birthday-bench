@@ -11,6 +11,8 @@ use pi_birthday_bench::result::{BackendMode as CoreBackendMode, ProgressEvent, R
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum BackendMode {
     CpuSingle,
+    #[value(name = "cpu-multi")]
+    CpuMulti,
     #[value(name = "cuda-compute")]
     CudaCompute,
     #[value(name = "cuda-search-only")]
@@ -25,6 +27,7 @@ impl From<BackendMode> for CoreBackendMode {
     fn from(value: BackendMode) -> Self {
         match value {
             BackendMode::CpuSingle => Self::CpuSingle,
+            BackendMode::CpuMulti => Self::CpuMulti,
             BackendMode::CudaCompute => Self::CudaCompute,
             BackendMode::CudaSearchOnly => Self::CudaSearchOnly,
             BackendMode::Hip => Self::Hip,
@@ -58,6 +61,9 @@ struct Cli {
 
     #[arg(long)]
     benchmark_only: bool,
+
+    #[arg(long)]
+    threads: Option<usize>,
 
     #[arg(long)]
     list_backends: bool,
@@ -94,6 +100,7 @@ fn run() -> Result<()> {
         chunk: cli.chunk,
         backend: cli.backend.into(),
         benchmark_only: cli.benchmark_only,
+        threads: cli.threads,
     };
     let cancel_requested = AtomicBool::new(false);
 

@@ -1,10 +1,11 @@
 use anyhow::{bail, Result};
 
-use crate::pi::compute_pi_fractional_digits;
+use crate::pi::{compute_pi_fractional_digits, compute_pi_fractional_digits_parallel};
 use crate::result::BackendMode;
 
-pub const SELECTABLE_BACKENDS: [BackendMode; 6] = [
+pub const SELECTABLE_BACKENDS: [BackendMode; 7] = [
     BackendMode::CpuSingle,
+    BackendMode::CpuMulti,
     BackendMode::CudaCompute,
     BackendMode::CudaSearchOnly,
     BackendMode::Hip,
@@ -85,6 +86,11 @@ pub fn backend_info(mode: BackendMode) -> BackendInfo {
             gpu_role: GpuRole::None,
             availability: BackendAvailability::Available,
         },
+        BackendMode::CpuMulti => BackendInfo {
+            mode,
+            gpu_role: GpuRole::None,
+            availability: BackendAvailability::Available,
+        },
         BackendMode::CudaCompute => BackendInfo {
             mode,
             gpu_role: GpuRole::PiCompute,
@@ -117,12 +123,12 @@ pub fn backend_list_text() -> String {
     let lines = [
         "available backends:".to_owned(),
         backend_info(SELECTABLE_BACKENDS[0]).list_line(),
-        "- cpu-multi: unavailable, not implemented".to_owned(),
         backend_info(SELECTABLE_BACKENDS[1]).list_line(),
         backend_info(SELECTABLE_BACKENDS[2]).list_line(),
         backend_info(SELECTABLE_BACKENDS[3]).list_line(),
         backend_info(SELECTABLE_BACKENDS[4]).list_line(),
         backend_info(SELECTABLE_BACKENDS[5]).list_line(),
+        backend_info(SELECTABLE_BACKENDS[6]).list_line(),
     ];
 
     lines.join("\n")
@@ -165,7 +171,9 @@ impl PiBackend for CpuSingleBackend {
     }
 }
 
-pub struct CpuMultiBackend;
+pub struct CpuMultiBackend {
+    pub threads: usize,
+}
 
 impl PiBackend for CpuMultiBackend {
     fn name(&self) -> &'static str {
@@ -177,11 +185,11 @@ impl PiBackend for CpuMultiBackend {
     }
 
     fn is_available(&self) -> bool {
-        false
+        true
     }
 
-    fn compute_digits(&self, _digits: usize) -> Result<String> {
-        bail!("backend 'cpu-multi' is not implemented yet.\nhint: use --backend cpu-single")
+    fn compute_digits(&self, digits: usize) -> Result<String> {
+        compute_pi_fractional_digits_parallel(digits, self.threads)
     }
 }
 
@@ -213,7 +221,7 @@ mod tests {
 
         assert!(text.contains("available backends:"));
         assert!(text.contains("- cpu-single: available"));
-        assert!(text.contains("- cpu-multi: unavailable, not implemented"));
+        assert!(text.contains("- cpu-multi: available"));
         assert!(text.contains("- cuda-compute: unavailable, build with --features cuda"));
         assert!(text.contains("- cuda-search-only: unavailable, build with --features cuda"));
         assert!(text.contains("- hip: unavailable, build with --features hip"));

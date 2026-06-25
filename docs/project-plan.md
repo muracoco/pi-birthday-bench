@@ -187,7 +187,7 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 
 ## 現在の実装ステータス
 
-現在のコードは v0.1.5 のGUI shellに加えて、v0.3の一部であるJSON出力とbenchmark-onlyを実装済みである。
+現在のコードは v0.1.5 のGUI shellに加えて、v0.2 の CPU multi backend と v0.3 の一部であるJSON出力、benchmark-onlyを実装済みである。
 
 実装済み:
 
@@ -200,8 +200,10 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - `--json`
 - `--benchmark-only`
 - `--list-backends`
+- `--threads`
 - `YYYYMMDD` validation
 - CPU single による実行時 pi 計算
+- CPU multi による parallel binary splitting
 - 小数部のみの検索
 - chunk 境界をまたぐ検索
 - CLI/GUI 共通の `run_job`
@@ -216,7 +218,6 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 未実装:
 
 - `--verify`
-- `cpu-multi`
 - GPU backend implementation
 - system information collection
 
@@ -233,20 +234,20 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - #13 Implement --list-backends
 - #14 Add GPU backend stubs and feature flags
 - #7 Introduce backend abstraction
+- #8 Implement CPU multi backend
 
 #1 に元々含まれていた `--json`、`--benchmark-only`、`--threads`、`--list-backends`、`--verify` は、個別Issueで追跡する。
 
 ## 残Issueの優先順位
 
-1. #8 Implement CPU multi backend
-2. #19 Add verification mode
-3. #11 Add progress reporting
-4. #12 Add system information collection
-5. #20 Add result schema and benchmark examples
-6. #16 Document GPU compute limitations
-7. #15 Implement CUDA search-only prototype
-8. #17 Research CUDA compute backend
-9. #18 Research AMD GPU support
+1. #19 Add verification mode
+2. #11 Add progress reporting
+3. #12 Add system information collection
+4. #20 Add result schema and benchmark examples
+5. #16 Document GPU compute limitations
+6. #15 Implement CUDA search-only prototype
+7. #17 Research CUDA compute backend
+8. #18 Research AMD GPU support
 
 #10 を先に実装した理由は、benchmark-only、cpu-multi、GPU比較の前に出力schemaを固定しておくためである。測定結果の比較形式が先に安定していれば、後続Issueの検証とREADME例が揺れにくい。
 
@@ -256,9 +257,11 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 
 #14 を #13 の次に実装した理由は、`--list-backends` の出力と整合する形で、選択時の明確な unavailable / not implemented エラーを整えるためである。
 
-backend abstraction はコード上では導入済みである。GitHub Issue #7 は、実装内容と検証結果を確認してから別途クローズする。
+backend abstraction はコード上では導入済みである。GitHub Issue #7 はクローズ済みである。
 
-次の実装候補は #8 CPU multi backend とする。backend abstraction と GPU stub が入ったため、次に CPU multi を追加しても CLI/job 分岐を大きく書き換えない構造になっている。
+#8 を #7 の次に実装した理由は、backend abstraction と GPU stub が入った状態で CPU multi を追加すれば、CLI/job 分岐を大きく書き換えずに並列backendを検証できるためである。
+
+次の実装候補は #19 verification mode とする。CPU single / multi の比較対象がそろったため、次に prefix 検証と backend 間の簡易照合を入れると、以後の progress / system info / GPU 系作業で誤った測定結果を見つけやすくなる。
 
 GPUは後回しにする。現時点では CPU single、JSON schema、benchmark-only、backend discovery、backend selector/stub が先に必要であり、GPU実装に踏み込むと進捗、検証、ビルド環境、結果比較の論点が同時に増えるためである。
 

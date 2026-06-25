@@ -3,12 +3,12 @@ use std::time::Instant;
 
 use anyhow::{bail, Result};
 
-use crate::backend::{unavailable_backend_error, CpuSingleBackend, PiBackend};
+use crate::backend::{unavailable_backend_error, CpuMultiBackend, CpuSingleBackend, PiBackend};
 use crate::result::{BackendMode, BenchmarkResult, ProgressEvent, RunConfig, RunPhase};
 use crate::search::{search_pattern_with_options, SearchOptions};
 
 pub fn run_job<F>(
-    config: RunConfig,
+    mut config: RunConfig,
     cancel_requested: &AtomicBool,
     mut emit: F,
 ) -> Result<BenchmarkResult>
@@ -30,6 +30,12 @@ where
 
     match config.backend {
         BackendMode::CpuSingle => run_backend(config, &CpuSingleBackend, cancel_requested, emit),
+        BackendMode::CpuMulti => {
+            let threads = config.threads.unwrap_or_else(default_thread_count);
+            config.threads = Some(threads);
+            let backend = CpuMultiBackend { threads };
+            run_backend(config, &backend, cancel_requested, emit)
+        }
         BackendMode::CudaCompute
         | BackendMode::CudaSearchOnly
         | BackendMode::Hip
@@ -107,11 +113,20 @@ where
         elapsed_seconds,
         digits_per_second: speed(config.max_digits, elapsed_seconds),
         chunks_processed: search.chunks_processed,
+        threads: config
+            .threads
+            .filter(|_| config.backend == BackendMode::CpuMulti),
         gpu_role: backend.gpu_role().as_str().to_owned(),
     };
 
     emit(ProgressEvent::Completed(result.clone()));
     Ok(result)
+}
+
+fn default_thread_count() -> usize {
+    std::thread::available_parallelism()
+        .map(usize::from)
+        .unwrap_or(1)
 }
 
 fn speed(digits: usize, elapsed_seconds: f64) -> f64 {

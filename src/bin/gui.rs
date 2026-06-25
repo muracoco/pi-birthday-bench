@@ -120,9 +120,6 @@ impl GuiApp {
                 .show_ui(ui, |ui| {
                     for backend in SELECTABLE_BACKENDS {
                         ui.selectable_value(&mut self.selected_backend, backend, backend.as_str());
-                        if backend == BackendMode::CpuSingle {
-                            ui.add_enabled(false, egui::Button::new("cpu-multi"));
-                        }
                     }
                 });
             ui.label("gpu modes are stubs");
@@ -348,6 +345,7 @@ impl GuiApp {
                         chunk,
                         backend: self.selected_backend,
                         benchmark_only: self.benchmark_only,
+                        threads: None,
                     })
                 }
                 _ => None,
