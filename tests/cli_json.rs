@@ -40,3 +40,33 @@ fn cli_json_outputs_parseable_json_only() {
     assert!(value["memory_peak_mb"].is_null());
     assert_eq!(value["verification_status"], "skipped");
 }
+
+#[test]
+fn cli_json_accepts_benchmark_only() {
+    let output = Command::cargo_bin("pi-birthday-bench")
+        .expect("binary exists")
+        .args([
+            "--target",
+            "20240628",
+            "--max-digits",
+            "100",
+            "--chunk",
+            "25",
+            "--backend",
+            "cpu-single",
+            "--benchmark-only",
+            "--json",
+        ])
+        .output()
+        .expect("command runs");
+
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8(output.stdout).expect("stdout is UTF-8");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("stdout is JSON");
+
+    assert_eq!(value["target"], "20240628");
+    assert_eq!(value["digits_computed"], 100);
+    assert_eq!(value["chunks_processed"], 4);
+    assert!(value.get("digits_per_second").is_some());
+}

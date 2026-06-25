@@ -75,9 +75,9 @@ pi-birthday-bench --target 19930628 --max-digits 1000000 --backend cpu-single --
 - `--backend MODE`
 - `--json`
 - `--no-progress`
+- `--benchmark-only`
 - `--threads N`
 - `--verify`
-- `--benchmark-only`
 - `--list-backends`
 
 ## 4. 出力仕様
@@ -184,11 +184,10 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 
 - GPU 対応
 - CPU multi
-- benchmark-only
 
 ## 現在の実装ステータス
 
-現在のコードは v0.1.5 相当である。
+現在のコードは v0.1.5 のGUI shellに加えて、v0.3の一部であるJSON出力とbenchmark-onlyを実装済みである。
 
 実装済み:
 
@@ -199,6 +198,7 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - `--backend cpu-single`
 - `--no-progress`
 - `--json`
+- `--benchmark-only`
 - `YYYYMMDD` validation
 - CPU single による実行時 pi 計算
 - 小数部のみの検索
@@ -209,7 +209,6 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 
 未実装:
 
-- `--benchmark-only`
 - `--verify`
 - `--list-backends`
 - `cpu-multi`
@@ -226,30 +225,32 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - #5 Connect CPU single backend to CLI search
 - #6 Add README basic documentation
 - #10 Add JSON output
+- #9 Add benchmark-only mode
 
 #1 に元々含まれていた `--json`、`--benchmark-only`、`--threads`、`--list-backends`、`--verify` は、個別Issueで追跡する。
 
 ## 残Issueの優先順位
 
-1. #9 Add benchmark-only mode
-2. #13 Implement --list-backends
-3. #14 Add GPU backend stubs and feature flags
-4. #7 Introduce backend abstraction
-5. #8 Implement CPU multi backend
-6. #19 Add verification mode
-7. #11 Add progress reporting
-8. #12 Add system information collection
-9. #20 Add result schema and benchmark examples
-10. #16 Document GPU compute limitations
-11. #15 Implement CUDA search-only prototype
-12. #17 Research CUDA compute backend
-13. #18 Research AMD GPU support
+1. #13 Implement --list-backends
+2. #14 Add GPU backend stubs and feature flags
+3. #7 Introduce backend abstraction
+4. #8 Implement CPU multi backend
+5. #19 Add verification mode
+6. #11 Add progress reporting
+7. #12 Add system information collection
+8. #20 Add result schema and benchmark examples
+9. #16 Document GPU compute limitations
+10. #15 Implement CUDA search-only prototype
+11. #17 Research CUDA compute backend
+12. #18 Research AMD GPU support
 
 #10 を先に実装した理由は、benchmark-only、cpu-multi、GPU比較の前に出力schemaを固定しておくためである。測定結果の比較形式が先に安定していれば、後続Issueの検証とREADME例が揺れにくい。
 
-次の実装候補は #9 benchmark-only mode とする。JSON出力がある状態で実装すると、target発見後も走り切った測定結果を記録しやすい。
+#9 を #10 の次に実装した理由は、JSON出力がある状態で target 発見後も走り切った測定結果を記録しやすくするためである。
 
-GPUは後回しにする。現時点では CPU single、JSON schema、benchmark-only、backend selector/stub が先に必要であり、GPU実装に踏み込むと進捗、検証、ビルド環境、結果比較の論点が同時に増えるためである。
+次の実装候補は #13 --list-backends とする。backend selector / stub の前に、現在利用できるbackendと未実装backendの状態をCLIから確認できるようにする。
+
+GPUは後回しにする。現時点では CPU single、JSON schema、benchmark-only、backend discovery、backend selector/stub が先に必要であり、GPU実装に踏み込むと進捗、検証、ビルド環境、結果比較の論点が同時に増えるためである。
 
 ## 変更時の同期ルール
 

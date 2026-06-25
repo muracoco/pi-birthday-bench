@@ -33,6 +33,12 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
 cargo +stable-x86_64-pc-windows-gnu run --release -- --target 20240628 --max-digits 1000000 --chunk 100000 --backend cpu-single --no-progress
 ```
 
+targetが見つかっても `--max-digits` まで走り切る場合:
+
+```bash
+cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cpu-single --benchmark-only
+```
+
 JSONだけを標準出力に出す場合:
 
 ```bash
@@ -79,6 +85,7 @@ GUIでできること:
 - `YYYYMMDD` targetの入力とvalidation
 - `max_digits` と `chunk` の入力
 - `cpu-single` backendでのStart/Cancel
+- Benchmark only mode
 - status、phase、elapsed seconds、digits/sec、progress barの表示
 - resultの表示
 - result text / JSON のコピー
@@ -88,12 +95,11 @@ GUIでまだできないこと:
 - backendは `cpu-single` のみ
 - 厳密なリアルタイム桁進捗は未対応
 - `computing_pi` 中のキャンセルは、その計算フェーズ完了後に反映される場合があります
-- `benchmark-only` と `verify` は未実装
+- `verify` は未実装
 
 将来予定:
 
 - `cpu-multi`
-- `benchmark-only`
 - GPU backend selector
 
 ## オプション
@@ -104,6 +110,7 @@ GUIでまだできないこと:
 - `--backend cpu-single`: v0.1 では `cpu-single` のみ対応します。
 - `--no-progress`: 進捗表示を抑制します。
 - `--json`: 結果をJSONだけで標準出力に出します。
+- `--benchmark-only`: targetが見つかっても `--max-digits` まで検索を続けます。
 
 ## 注意
 

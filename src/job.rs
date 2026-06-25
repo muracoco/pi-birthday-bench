@@ -65,6 +65,7 @@ where
         &digits,
         &config.target,
         config.chunk,
+        config.benchmark_only,
         cancel_requested,
         |digits_computed| {
             let elapsed_seconds = start.elapsed().as_secs_f64();
@@ -76,7 +77,7 @@ where
         },
     );
 
-    let Some(first_position) = search else {
+    let Some(search) = search else {
         emit(ProgressEvent::Cancelled);
         bail!("cancelled");
     };
@@ -84,14 +85,14 @@ where
     let elapsed_seconds = start.elapsed().as_secs_f64();
     let result = BenchmarkResult {
         target: config.target,
-        found: first_position.is_some(),
-        first_position,
+        found: search.first_position.is_some(),
+        first_position: search.first_position,
         backend: config.backend.as_str().to_owned(),
         algorithm: "chudnovsky_binary_splitting".to_owned(),
         digits_computed: config.max_digits,
         elapsed_seconds,
         digits_per_second: speed(config.max_digits, elapsed_seconds),
-        chunks_processed: config.max_digits.div_ceil(config.chunk),
+        chunks_processed: search.chunks_processed,
     };
 
     emit(ProgressEvent::Completed(result.clone()));
@@ -110,19 +111,25 @@ fn search_pattern_in_chunks_cancellable<F>(
     digits: &str,
     pattern: &str,
     chunk_size: usize,
+    benchmark_only: bool,
     cancel_requested: &AtomicBool,
     mut progress: F,
-) -> Option<Option<usize>>
+) -> Option<SearchOutcome>
 where
     F: FnMut(usize),
 {
     if pattern.is_empty() || chunk_size == 0 {
-        return Some(None);
+        return Some(SearchOutcome {
+            first_position: None,
+            chunks_processed: 0,
+        });
     }
 
     let overlap_len = pattern.len().saturating_sub(1);
     let mut offset = 0usize;
     let mut carry = String::new();
+    let mut chunks_processed = 0usize;
+    let mut first_position = None;
 
     while offset < digits.len() {
         if cancel_requested.load(Ordering::Relaxed) {
@@ -134,8 +141,25 @@ where
         let search_area = format!("{carry}{chunk}");
         let search_area_start_position = offset + 1 - carry.len();
 
-        if let Some(index) = search_area.find(pattern) {
-            return Some(Some(search_area_start_position + index));
+        if first_position.is_none() {
+            if let Some(index) = search_area.find(pattern) {
+                first_position = Some(search_area_start_position + index);
+                chunks_processed += 1;
+                progress(end);
+
+                if !benchmark_only {
+                    return Some(SearchOutcome {
+                        first_position,
+                        chunks_processed,
+                    });
+                }
+            } else {
+                chunks_processed += 1;
+                progress(end);
+            }
+        } else {
+            chunks_processed += 1;
+            progress(end);
         }
 
         if overlap_len > 0 {
@@ -144,8 +168,63 @@ where
         }
 
         offset = end;
-        progress(offset);
     }
 
-    Some(None)
+    Some(SearchOutcome {
+        first_position,
+        chunks_processed,
+    })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SearchOutcome {
+    first_position: Option<usize>,
+    chunks_processed: usize,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::AtomicBool;
+
+    use super::search_pattern_in_chunks_cancellable;
+
+    #[test]
+    fn normal_search_stops_when_pattern_is_found() {
+        let cancelled = AtomicBool::new(false);
+        let mut progress = Vec::new();
+
+        let outcome = search_pattern_in_chunks_cancellable(
+            "1234567890",
+            "34",
+            2,
+            false,
+            &cancelled,
+            |digits_computed| progress.push(digits_computed),
+        )
+        .expect("not cancelled");
+
+        assert_eq!(outcome.first_position, Some(3));
+        assert_eq!(outcome.chunks_processed, 2);
+        assert_eq!(progress, vec![2, 4]);
+    }
+
+    #[test]
+    fn benchmark_only_continues_after_pattern_is_found() {
+        let cancelled = AtomicBool::new(false);
+        let mut progress = Vec::new();
+
+        let outcome = search_pattern_in_chunks_cancellable(
+            "1234567890",
+            "34",
+            2,
+            true,
+            &cancelled,
+            |digits_computed| progress.push(digits_computed),
+        )
+        .expect("not cancelled");
+
+        assert_eq!(outcome.first_position, Some(3));
+        assert_eq!(outcome.chunks_processed, 5);
+        assert_eq!(progress, vec![2, 4, 6, 8, 10]);
+    }
 }
