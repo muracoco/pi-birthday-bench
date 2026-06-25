@@ -38,10 +38,13 @@ fn cli_json_outputs_parseable_json_only() {
     assert!(value.get("elapsed_seconds").is_some());
     assert!(value.get("digits_per_second").is_some());
     assert!(value["threads"].is_null());
-    assert!(value["cpu_model"].is_null());
+    assert!(value.get("cpu_model").is_some());
+    assert!(value.get("logical_cpu_count").is_some());
+    assert!(value.get("physical_cpu_count").is_some());
     assert!(value["gpu_name"].is_null());
     assert_eq!(value["gpu_role"], "none");
-    assert!(value["memory_peak_mb"].is_null());
+    assert!(value.get("memory_total_mb").is_some());
+    assert!(value.get("memory_peak_mb").is_some());
     assert_eq!(value["verification_status"], "skipped");
 }
 

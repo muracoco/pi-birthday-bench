@@ -68,7 +68,7 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
   "algorithm": "chudnovsky_binary_splitting",
   "backend": "cpu-single",
   "chunks_processed": 1,
-  "cpu_model": null,
+  "cpu_model": "AMD Ryzen ...",
   "digits_computed": 1000000,
   "digits_per_second": 610604.1,
   "elapsed_seconds": 1.637722,
@@ -76,14 +76,17 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
   "found": false,
   "gpu_name": null,
   "gpu_role": "none",
+  "logical_cpu_count": 16,
+  "memory_total_mb": 32768,
   "memory_peak_mb": null,
+  "physical_cpu_count": null,
   "target": "19930628",
   "threads": null,
   "verification_status": "skipped"
 }
 ```
 
-現時点では `threads` は `cpu-multi` の場合のみ数値になり、`cpu-single` では `null` です。`cpu_model`、`gpu_name`、`memory_peak_mb` は未取得なら `null` です。GPUは未実装のため `gpu_role` は `none` です。`--verify` 未指定時の `verification_status` は `skipped`、検証成功時は `passed` です。
+現時点では `threads` は `cpu-multi` の場合のみ数値になり、`cpu-single` では `null` です。`cpu_model`、`logical_cpu_count`、`physical_cpu_count`、`memory_total_mb`、`memory_peak_mb` は取得できない環境では `null` です。GPUは未実装のため `gpu_role` は `none` です。`--verify` 未指定時の `verification_status` は `skipped`、検証成功時は `passed` です。
 
 利用可能なbackend一覧を確認する場合:
 
