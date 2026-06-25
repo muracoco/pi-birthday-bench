@@ -6,7 +6,7 @@ default-run = "pi-birthday-bench"
 
 [features]
 default = []
-gui = ["dep:eframe", "dep:serde_json", "dep:wgpu"]
+gui = ["dep:eframe", "dep:wgpu"]
 
 [[bin]]
 name = "gui"
@@ -21,7 +21,7 @@ clap = { version = "4.5", features = ["derive"] }
 eframe = { version = "0.33", optional = true, default-features = false, features = ["default_fonts", "wgpu"] }
 gmp-mpfr-sys = { version = "1.7", default-features = false, features = ["use-system-libs"] }
 rug = { version = "1.30", default-features = false, features = ["integer"] }
-serde_json = { version = "1.0", optional = true }
+serde_json = "1.0"
 # eframe enables wgpu, but with default-features disabled it does not select a native backend.
 # Keep this direct optional dependency so the Windows GUI has a DX12 backend at runtime.
 wgpu = { version = "27.0", optional = true, default-features = false, features = ["dx12"] }
