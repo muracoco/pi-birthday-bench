@@ -15,7 +15,7 @@ pi = 3.1415926535...
 
 つまり、小数第1位は `1`、小数第2位は `4`、小数第3位は `1` です。出力の `first_position` は、この小数部を1始まりで数えた位置です。
 
-## 使い方
+## CLI usage
 
 Windows で `rug` / GMP 系依存を使うため、現時点では MSYS2 MinGW と Rust GNU toolchain でのビルドを前提にしています。
 
@@ -32,6 +32,37 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
 ```bash
 cargo +stable-x86_64-pc-windows-gnu run --release -- --target 20240628 --max-digits 1000000 --chunk 100000 --backend cpu-single --no-progress
 ```
+
+## GUI usage
+
+GUIは `eframe` / `egui` を使うRust-native GUIです。CLIをサブプロセス起動せず、CLIと同じ中核ジョブ処理を呼びます。
+
+```bash
+cargo +stable-x86_64-pc-windows-gnu run --release --features gui --bin gui
+```
+
+GUIでできること:
+
+- `YYYYMMDD` targetの入力とvalidation
+- `max_digits` と `chunk` の入力
+- `cpu-single` backendでのStart/Cancel
+- status、phase、elapsed seconds、digits/sec、progress barの表示
+- resultの表示
+- result text / JSON のコピー
+
+GUIでまだできないこと:
+
+- backendは `cpu-single` のみ
+- 厳密なリアルタイム桁進捗は未対応
+- `computing_pi` 中のキャンセルは、その計算フェーズ完了後に反映される場合があります
+- `benchmark-only` と `verify` は未実装
+
+将来予定:
+
+- `cpu-multi`
+- `benchmark-only`
+- CLI `--json`
+- GPU backend selector
 
 ## オプション
 

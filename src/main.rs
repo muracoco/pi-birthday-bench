@@ -1,16 +1,23 @@
 use std::process::ExitCode;
-use std::time::Instant;
+use std::sync::atomic::AtomicBool;
 
-use anyhow::{bail, Context, Result};
+use anyhow::Result;
 use clap::{Parser, ValueEnum};
 
-use pi_birthday_bench::date::validate_yyyymmdd;
-use pi_birthday_bench::pi::compute_pi_fractional_digits;
-use pi_birthday_bench::search::search_pattern_in_chunks;
+use pi_birthday_bench::job::run_job;
+use pi_birthday_bench::result::{BackendMode as CoreBackendMode, ProgressEvent, RunConfig};
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum BackendMode {
     CpuSingle,
+}
+
+impl From<BackendMode> for CoreBackendMode {
+    fn from(value: BackendMode) -> Self {
+        match value {
+            BackendMode::CpuSingle => Self::CpuSingle,
+        }
+    }
 }
 
 #[derive(Debug, Parser)]
@@ -45,53 +52,37 @@ fn main() -> ExitCode {
 
 fn run() -> Result<()> {
     let cli = Cli::parse();
-
-    validate_yyyymmdd(&cli.target).with_context(|| format!("invalid --target '{}'", cli.target))?;
-
-    if cli.max_digits == 0 {
-        bail!("--max-digits must be greater than 0");
-    }
-    if cli.chunk == 0 {
-        bail!("--chunk must be greater than 0");
-    }
-
-    match cli.backend {
-        BackendMode::CpuSingle => run_cpu_single(&cli),
-    }
-}
-
-fn run_cpu_single(cli: &Cli) -> Result<()> {
-    let start = Instant::now();
-    let digits = compute_pi_fractional_digits(cli.max_digits)?;
-    let first_position = search_pattern_in_chunks(&digits, &cli.target, cli.chunk);
-    let elapsed = start.elapsed();
-    let elapsed_seconds = elapsed.as_secs_f64();
-    let digits_per_second = if elapsed_seconds > 0.0 {
-        cli.max_digits as f64 / elapsed_seconds
-    } else {
-        0.0
+    let config = RunConfig {
+        target: cli.target,
+        max_digits: cli.max_digits,
+        chunk: cli.chunk,
+        backend: cli.backend.into(),
     };
-    let chunks_processed = cli.max_digits.div_ceil(cli.chunk);
+    let cancel_requested = AtomicBool::new(false);
 
-    if !cli.no_progress {
-        eprintln!(
-            "backend=cpu-single target={} digits_computed={} elapsed={:.2}s speed={:.1} digits/sec",
-            cli.target, cli.max_digits, elapsed_seconds, digits_per_second
-        );
-    }
+    let result = run_job(config, &cancel_requested, |event| {
+        if cli.no_progress {
+            return;
+        }
 
-    println!("target: {}", cli.target);
-    println!("found: {}", first_position.is_some());
-    match first_position {
-        Some(position) => println!("first_position: {position}"),
-        None => println!("first_position: null"),
-    }
-    println!("backend: cpu-single");
-    println!("algorithm: chudnovsky_binary_splitting");
-    println!("digits_computed: {}", cli.max_digits);
-    println!("elapsed_seconds: {:.6}", elapsed_seconds);
-    println!("digits_per_second: {:.1}", digits_per_second);
-    println!("chunks_processed: {chunks_processed}");
+        match event {
+            ProgressEvent::PhaseChanged { phase } => {
+                eprintln!("phase={}", phase.as_str());
+            }
+            ProgressEvent::Progress {
+                digits_computed,
+                elapsed_seconds,
+                digits_per_second,
+            } => {
+                eprintln!(
+                    "digits_computed={digits_computed} elapsed={elapsed_seconds:.2}s speed={digits_per_second:.1} digits/sec"
+                );
+            }
+            _ => {}
+        }
+    })?;
+
+    println!("{}", result.as_text());
 
     Ok(())
 }
