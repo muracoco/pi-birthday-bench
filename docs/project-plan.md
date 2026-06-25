@@ -224,6 +224,7 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - verification mode
 - progress reporting
 - system information collection
+- result schema documentation and benchmark examples
 
 未実装:
 
@@ -246,16 +247,16 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - #19 Add verification mode
 - #11 Add progress reporting
 - #12 Add system information collection
+- #20 Add result schema and benchmark examples
 
 #1 に元々含まれていた `--json`、`--benchmark-only`、`--threads`、`--list-backends`、`--verify` は、個別Issueで追跡する。
 
 ## 残Issueの優先順位
 
-1. #20 Add result schema and benchmark examples
-2. #16 Document GPU compute limitations
-3. #15 Implement CUDA search-only prototype
-4. #17 Research CUDA compute backend
-5. #18 Research AMD GPU support
+1. #16 Document GPU compute limitations
+2. #15 Implement CUDA search-only prototype
+3. #17 Research CUDA compute backend
+4. #18 Research AMD GPU support
 
 #10 を先に実装した理由は、benchmark-only、cpu-multi、GPU比較の前に出力schemaを固定しておくためである。測定結果の比較形式が先に安定していれば、後続Issueの検証とREADME例が揺れにくい。
 
@@ -275,7 +276,9 @@ backend abstraction はコード上では導入済みである。GitHub Issue #7
 
 #12 を #11 の次に実装した理由は、JSON/result schemaとprogressが固まった段階で、CPU modelやメモリ情報を結果に埋めるためである。
 
-次の実装候補は #20 result schema and benchmark examples とする。JSON、benchmark-only、CPU multi、verify、progress、system info が入ったため、README/docsの出力フィールド定義と実行例をまとめ直す段階に進める。
+#20 を #12 の次に実装した理由は、JSON、benchmark-only、CPU multi、verify、progress、system info が入った段階で、READMEから実行例と結果フィールドの意味を確認できるようにするためである。
+
+次の実装候補は #16 document GPU compute limitations とする。GPU backend はstubまで入っているため、実装に進む前に `cuda-search-only` と `cuda-compute` の違い、比較時の注意、未実装範囲をREADME/docsで明確にする。
 
 GPUは後回しにする。現時点では CPU single、JSON schema、benchmark-only、backend discovery、backend selector/stub が先に必要であり、GPU実装に踏み込むと進捗、検証、ビルド環境、結果比較の論点が同時に増えるためである。
 
