@@ -96,8 +96,11 @@ digits_per_second: 1620745.5
 chunks_processed: 20
 threads: 12
 cpu_model: AMD Ryzen ...
+logical_cpu_count: 24
+physical_cpu_count: null
 gpu_name: null
 gpu_role: none
+memory_total_mb: 32768
 memory_peak_mb: 512
 verification_status: passed
 ```
@@ -124,8 +127,11 @@ JSON 出力では、現時点で取得できるフィールドを安定schemaと
   "chunks_processed": 1,
   "threads": null,
   "cpu_model": null,
+  "logical_cpu_count": null,
+  "physical_cpu_count": null,
   "gpu_name": null,
   "gpu_role": "none",
+  "memory_total_mb": null,
   "memory_peak_mb": null,
   "verification_status": "skipped"
 }
@@ -217,11 +223,11 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - 検索ロジックの共通化
 - verification mode
 - progress reporting
+- system information collection
 
 未実装:
 
 - GPU backend implementation
-- system information collection
 
 ## 完了済みIssue
 
@@ -239,17 +245,17 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - #8 Implement CPU multi backend
 - #19 Add verification mode
 - #11 Add progress reporting
+- #12 Add system information collection
 
 #1 に元々含まれていた `--json`、`--benchmark-only`、`--threads`、`--list-backends`、`--verify` は、個別Issueで追跡する。
 
 ## 残Issueの優先順位
 
-1. #12 Add system information collection
-2. #20 Add result schema and benchmark examples
-3. #16 Document GPU compute limitations
-4. #15 Implement CUDA search-only prototype
-5. #17 Research CUDA compute backend
-6. #18 Research AMD GPU support
+1. #20 Add result schema and benchmark examples
+2. #16 Document GPU compute limitations
+3. #15 Implement CUDA search-only prototype
+4. #17 Research CUDA compute backend
+5. #18 Research AMD GPU support
 
 #10 を先に実装した理由は、benchmark-only、cpu-multi、GPU比較の前に出力schemaを固定しておくためである。測定結果の比較形式が先に安定していれば、後続Issueの検証とREADME例が揺れにくい。
 
@@ -267,7 +273,9 @@ backend abstraction はコード上では導入済みである。GitHub Issue #7
 
 #11 を #19 の次に実装した理由は、検証結果が出力schemaに入った後で、長時間実行中のstderr progressに backend、target、range、chunk、threads をそろえて表示するためである。
 
-次の実装候補は #12 system information collection とする。JSON/result schemaとprogressが固まったため、CPU modelやメモリ情報を結果に埋める段階に進める。
+#12 を #11 の次に実装した理由は、JSON/result schemaとprogressが固まった段階で、CPU modelやメモリ情報を結果に埋めるためである。
+
+次の実装候補は #20 result schema and benchmark examples とする。JSON、benchmark-only、CPU multi、verify、progress、system info が入ったため、README/docsの出力フィールド定義と実行例をまとめ直す段階に進める。
 
 GPUは後回しにする。現時点では CPU single、JSON schema、benchmark-only、backend discovery、backend selector/stub が先に必要であり、GPU実装に踏み込むと進捗、検証、ビルド環境、結果比較の論点が同時に増えるためである。
 

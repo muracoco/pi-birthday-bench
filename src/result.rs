@@ -150,13 +150,18 @@ pub struct BenchmarkResult {
     pub digits_per_second: f64,
     pub chunks_processed: usize,
     pub threads: Option<usize>,
+    pub cpu_model: Option<String>,
+    pub logical_cpu_count: Option<usize>,
+    pub physical_cpu_count: Option<usize>,
     pub gpu_role: String,
+    pub memory_total_mb: Option<u64>,
+    pub memory_peak_mb: Option<u64>,
     pub verification_status: VerificationStatus,
 }
 
 impl BenchmarkResult {
     pub fn as_text(&self) -> String {
-        let mut text = format!(
+        format!(
             "\
 target: {}
 found: {}
@@ -167,6 +172,12 @@ digits_computed: {}
 elapsed_seconds: {:.6}
 digits_per_second: {:.1}
 chunks_processed: {}
+threads: {}
+cpu_model: {}
+logical_cpu_count: {}
+physical_cpu_count: {}
+memory_total_mb: {}
+memory_peak_mb: {}
 verification_status: {}",
             self.target,
             self.found,
@@ -179,14 +190,14 @@ verification_status: {}",
             self.elapsed_seconds,
             self.digits_per_second,
             self.chunks_processed,
+            option_usize_text(self.threads),
+            option_string_text(self.cpu_model.as_deref()),
+            option_usize_text(self.logical_cpu_count),
+            option_usize_text(self.physical_cpu_count),
+            option_u64_text(self.memory_total_mb),
+            option_u64_text(self.memory_peak_mb),
             self.verification_status.as_str()
-        );
-
-        if let Some(threads) = self.threads {
-            text.push_str(&format!("\nthreads: {threads}"));
-        }
-
-        text
+        )
     }
 }
 
@@ -203,14 +214,33 @@ impl BenchmarkResult {
             "digits_per_second": self.digits_per_second,
             "chunks_processed": self.chunks_processed,
             "threads": self.threads,
-            "cpu_model": null,
+            "cpu_model": self.cpu_model,
+            "logical_cpu_count": self.logical_cpu_count,
+            "physical_cpu_count": self.physical_cpu_count,
             "gpu_name": null,
             "gpu_role": self.gpu_role.as_str(),
-            "memory_peak_mb": null,
+            "memory_total_mb": self.memory_total_mb,
+            "memory_peak_mb": self.memory_peak_mb,
             "verification_status": self.verification_status.as_str(),
         })
         .to_string()
     }
+}
+
+fn option_string_text(value: Option<&str>) -> String {
+    value.unwrap_or("null").to_owned()
+}
+
+fn option_usize_text(value: Option<usize>) -> String {
+    value
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| "null".to_owned())
+}
+
+fn option_u64_text(value: Option<u64>) -> String {
+    value
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| "null".to_owned())
 }
 
 #[cfg(test)]
@@ -292,7 +322,12 @@ mod tests {
             digits_per_second: 1_620_745.5,
             chunks_processed: 20,
             threads: None,
+            cpu_model: Some("Test CPU".to_owned()),
+            logical_cpu_count: Some(8),
+            physical_cpu_count: None,
             gpu_role: "none".to_owned(),
+            memory_total_mb: Some(16_384),
+            memory_peak_mb: None,
             verification_status: VerificationStatus::Skipped,
         };
 
@@ -306,9 +341,12 @@ mod tests {
         assert_eq!(value["digits_computed"], 20_000_000);
         assert_eq!(value["chunks_processed"], 20);
         assert!(value["threads"].is_null());
-        assert!(value["cpu_model"].is_null());
+        assert_eq!(value["cpu_model"], "Test CPU");
+        assert_eq!(value["logical_cpu_count"], 8);
+        assert!(value["physical_cpu_count"].is_null());
         assert!(value["gpu_name"].is_null());
         assert_eq!(value["gpu_role"], "none");
+        assert_eq!(value["memory_total_mb"], 16_384);
         assert!(value["memory_peak_mb"].is_null());
         assert_eq!(value["verification_status"], "skipped");
     }

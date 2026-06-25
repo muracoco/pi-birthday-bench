@@ -9,6 +9,7 @@ use crate::result::{
     BackendMode, BenchmarkResult, ProgressEvent, RunConfig, RunPhase, VerificationStatus,
 };
 use crate::search::{search_pattern_with_options, SearchOptions};
+use crate::system_info::collect_system_info;
 
 const CPU_MULTI_VERIFY_DIGITS: usize = 1_000;
 
@@ -126,6 +127,7 @@ where
     }
 
     let elapsed_seconds = start.elapsed().as_secs_f64();
+    let system_info = collect_system_info();
     let result = BenchmarkResult {
         target: config.target,
         found: search.first_position.is_some(),
@@ -139,7 +141,12 @@ where
         threads: config
             .threads
             .filter(|_| config.backend == BackendMode::CpuMulti),
+        cpu_model: system_info.cpu_model,
+        logical_cpu_count: system_info.logical_cpu_count,
+        physical_cpu_count: system_info.physical_cpu_count,
         gpu_role: backend.gpu_role().as_str().to_owned(),
+        memory_total_mb: system_info.memory_total_mb,
+        memory_peak_mb: system_info.memory_peak_mb,
         verification_status,
     };
 
