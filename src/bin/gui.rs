@@ -39,6 +39,8 @@ struct GuiApp {
     elapsed_seconds: f64,
     digits_computed: usize,
     digits_per_second: f64,
+    range_start: usize,
+    range_end: usize,
 }
 
 impl Default for GuiApp {
@@ -61,6 +63,8 @@ impl Default for GuiApp {
             elapsed_seconds: 0.0,
             digits_computed: 0,
             digits_per_second: 0.0,
+            range_start: 0,
+            range_end: 0,
         }
     }
 }
@@ -197,6 +201,18 @@ impl GuiApp {
             ui.label(self.digits_computed.to_string());
             ui.end_row();
 
+            ui.label("current range");
+            if self.range_end > 0 {
+                ui.label(format!("{}..{}", self.range_start, self.range_end));
+            } else {
+                ui.label("none");
+            }
+            ui.end_row();
+
+            ui.label("chunk");
+            ui.label(&self.chunk);
+            ui.end_row();
+
             ui.label("speed digits/sec");
             ui.label(format!("{:.1}", self.digits_per_second));
             ui.end_row();
@@ -243,6 +259,8 @@ impl GuiApp {
         self.elapsed_seconds = 0.0;
         self.digits_computed = 0;
         self.digits_per_second = 0.0;
+        self.range_start = 0;
+        self.range_end = 0;
         self.error_message = None;
         self.result = None;
         self.phase = RunPhase::Validating;
@@ -296,10 +314,14 @@ impl GuiApp {
                 self.status = phase.as_str().to_owned();
             }
             ProgressEvent::Progress {
+                range_start,
+                range_end,
                 digits_computed,
                 elapsed_seconds,
                 digits_per_second,
             } => {
+                self.range_start = range_start;
+                self.range_end = range_end;
                 self.digits_computed = digits_computed;
                 self.elapsed_seconds = elapsed_seconds;
                 self.digits_per_second = digits_per_second;

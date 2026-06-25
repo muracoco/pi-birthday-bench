@@ -39,6 +39,8 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
 cargo +stable-x86_64-pc-windows-gnu run --release -- --target 20240628 --max-digits 1000000 --chunk 100000 --backend cpu-single --no-progress
 ```
 
+通常実行では、phaseとchunk単位の進捗をstderrに出します。`backend`、`target`、現在の `range`、`digits_computed`、`elapsed_seconds`、`digits_per_second`、`chunk`、`threads` を含みます。`--json` 指定時と `--no-progress` 指定時はprogressを出しません。
+
 targetが見つかっても `--max-digits` まで走り切る場合:
 
 ```bash
@@ -114,7 +116,7 @@ GUIでできること:
 - GPU stub backendの選択と未実装エラー表示
 - Benchmark only mode
 - Verify
-- status、phase、elapsed seconds、digits/sec、progress barの表示
+- status、phase、current range、elapsed seconds、digits/sec、progress barの表示
 - resultの表示
 - result text / JSON のコピー
 

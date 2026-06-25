@@ -20,6 +20,10 @@ pub fn run_job<F>(
 where
     F: FnMut(ProgressEvent),
 {
+    if config.backend == BackendMode::CpuMulti && config.threads.is_none() {
+        config.threads = Some(default_thread_count());
+    }
+
     emit(ProgressEvent::Started {
         config: config.clone(),
     });
@@ -36,7 +40,7 @@ where
     match config.backend {
         BackendMode::CpuSingle => run_backend(config, &CpuSingleBackend, cancel_requested, emit),
         BackendMode::CpuMulti => {
-            let threads = config.threads.unwrap_or_else(default_thread_count);
+            let threads = config.threads.expect("cpu-multi threads are initialized");
             config.threads = Some(threads);
             let backend = CpuMultiBackend { threads };
             run_backend(config, &backend, cancel_requested, emit)
@@ -71,6 +75,8 @@ where
     let digits = backend.compute_digits(config.max_digits)?;
     let elapsed_seconds = start.elapsed().as_secs_f64();
     emit(ProgressEvent::Progress {
+        range_start: 1,
+        range_end: config.max_digits,
         digits_computed: config.max_digits,
         elapsed_seconds,
         digits_per_second: speed(config.max_digits, elapsed_seconds),
@@ -91,6 +97,7 @@ where
     emit(ProgressEvent::PhaseChanged {
         phase: RunPhase::Searching,
     });
+    let mut previous_digits_computed = 0usize;
     let search = search_pattern_with_options(
         &digits,
         &config.target,
@@ -101,7 +108,11 @@ where
         || cancel_requested.load(Ordering::Relaxed),
         |digits_computed| {
             let elapsed_seconds = start.elapsed().as_secs_f64();
+            let range_start = previous_digits_computed.saturating_add(1);
+            previous_digits_computed = digits_computed;
             emit(ProgressEvent::Progress {
+                range_start,
+                range_end: digits_computed,
                 digits_computed,
                 elapsed_seconds,
                 digits_per_second: speed(digits_computed, elapsed_seconds),
