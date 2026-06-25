@@ -139,10 +139,7 @@ impl GuiApp {
 
         ui.add_space(8.0);
         ui.horizontal(|ui| {
-            ui.add_enabled(
-                false,
-                egui::Checkbox::new(&mut self.benchmark_only, "Benchmark only"),
-            );
+            ui.checkbox(&mut self.benchmark_only, "Benchmark only");
             ui.add_enabled(false, egui::Checkbox::new(&mut self.verify, "Verify"));
         });
     }
@@ -358,6 +355,7 @@ impl GuiApp {
                         max_digits,
                         chunk,
                         backend: self.selected_backend,
+                        benchmark_only: self.benchmark_only,
                     })
                 }
                 _ => None,

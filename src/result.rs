@@ -59,6 +59,7 @@ pub struct RunConfig {
     pub max_digits: usize,
     pub chunk: usize,
     pub backend: BackendMode,
+    pub benchmark_only: bool,
 }
 
 impl RunConfig {
@@ -170,6 +171,7 @@ mod tests {
             max_digits: 100,
             chunk: 10,
             backend: BackendMode::CpuSingle,
+            benchmark_only: false,
         };
 
         assert!(config.validate().is_ok());
@@ -182,6 +184,7 @@ mod tests {
             max_digits: 100,
             chunk: 10,
             backend: BackendMode::CpuSingle,
+            benchmark_only: false,
         };
         assert!(invalid_date.validate().is_err());
 
@@ -190,6 +193,7 @@ mod tests {
             max_digits: 0,
             chunk: 10,
             backend: BackendMode::CpuSingle,
+            benchmark_only: false,
         };
         assert!(zero_digits.validate().is_err());
 
@@ -198,6 +202,7 @@ mod tests {
             max_digits: 100,
             chunk: 0,
             backend: BackendMode::CpuSingle,
+            benchmark_only: false,
         };
         assert!(zero_chunk.validate().is_err());
     }

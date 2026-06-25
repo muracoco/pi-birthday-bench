@@ -41,6 +41,9 @@ struct Cli {
 
     #[arg(long)]
     json: bool,
+
+    #[arg(long)]
+    benchmark_only: bool,
 }
 
 fn main() -> ExitCode {
@@ -60,6 +63,7 @@ fn run() -> Result<()> {
         max_digits: cli.max_digits,
         chunk: cli.chunk,
         backend: cli.backend.into(),
+        benchmark_only: cli.benchmark_only,
     };
     let cancel_requested = AtomicBool::new(false);
 
