@@ -6,7 +6,11 @@ default-run = "pi-birthday-bench"
 
 [features]
 default = []
+cuda = []
 gui = ["dep:eframe", "dep:wgpu"]
+hip = []
+opencl = []
+vulkan = []
 
 [[bin]]
 name = "gui"

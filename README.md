@@ -79,6 +79,12 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --list-backends
 
 現時点で実行可能なのは `cpu-single` のみです。GPU系backendは一覧に表示しますが、まだ実装されていません。
 
+GPU系backendはstubとしてCLI上で選択できますが、現時点では明確なエラーを返します。通常ビルドではCUDA/HIP/OpenCL/Vulkan SDKを要求しません。
+
+```bash
+cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cuda-compute
+```
+
 ## GUI usage
 
 GUIは `eframe` / `egui` を使うRust-native GUIです。CLIをサブプロセス起動せず、CLIと同じ中核ジョブ処理を呼びます。
@@ -93,6 +99,7 @@ GUIでできること:
 - `YYYYMMDD` targetの入力とvalidation
 - `max_digits` と `chunk` の入力
 - `cpu-single` backendでのStart/Cancel
+- GPU stub backendの選択と未実装エラー表示
 - Benchmark only mode
 - status、phase、elapsed seconds、digits/sec、progress barの表示
 - resultの表示
@@ -100,7 +107,7 @@ GUIでできること:
 
 GUIでまだできないこと:
 
-- backendは `cpu-single` のみ
+- 実行可能なbackendは `cpu-single` のみ
 - 厳密なリアルタイム桁進捗は未対応
 - `computing_pi` 中のキャンセルは、その計算フェーズ完了後に反映される場合があります
 - `verify` は未実装
@@ -116,6 +123,7 @@ GUIでまだできないこと:
 - `--max-digits N`: 最大探索桁数。必須です。
 - `--chunk N`: 検索単位。既定値は `1000000` です。
 - `--backend cpu-single`: v0.1 では `cpu-single` のみ対応します。
+- `--backend cuda-compute|cuda-search-only|hip|opencl|vulkan`: stubとして選択可能ですが、現時点では未実装エラーを返します。
 - `--no-progress`: 進捗表示を抑制します。
 - `--json`: 結果をJSONだけで標準出力に出します。
 - `--benchmark-only`: targetが見つかっても `--max-digits` まで検索を続けます。
