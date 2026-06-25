@@ -176,6 +176,8 @@ threads: {}
 cpu_model: {}
 logical_cpu_count: {}
 physical_cpu_count: {}
+gpu_name: null
+gpu_role: {}
 memory_total_mb: {}
 memory_peak_mb: {}
 verification_status: {}",
@@ -194,6 +196,7 @@ verification_status: {}",
             option_string_text(self.cpu_model.as_deref()),
             option_usize_text(self.logical_cpu_count),
             option_usize_text(self.physical_cpu_count),
+            self.gpu_role,
             option_u64_text(self.memory_total_mb),
             option_u64_text(self.memory_peak_mb),
             self.verification_status.as_str()
@@ -349,6 +352,35 @@ mod tests {
         assert_eq!(value["memory_total_mb"], 16_384);
         assert!(value["memory_peak_mb"].is_null());
         assert_eq!(value["verification_status"], "skipped");
+    }
+
+    #[test]
+    fn benchmark_result_text_contains_schema_fields() {
+        let result = BenchmarkResult {
+            target: "19930628".to_owned(),
+            found: false,
+            first_position: None,
+            backend: "cpu-single".to_owned(),
+            algorithm: "chudnovsky_binary_splitting".to_owned(),
+            digits_computed: 100,
+            elapsed_seconds: 0.5,
+            digits_per_second: 200.0,
+            chunks_processed: 1,
+            threads: None,
+            cpu_model: None,
+            logical_cpu_count: None,
+            physical_cpu_count: None,
+            gpu_role: "none".to_owned(),
+            memory_total_mb: None,
+            memory_peak_mb: None,
+            verification_status: VerificationStatus::Skipped,
+        };
+
+        let text = result.as_text();
+
+        assert!(text.contains("gpu_name: null"));
+        assert!(text.contains("gpu_role: none"));
+        assert!(text.contains("verification_status: skipped"));
     }
 
     #[test]

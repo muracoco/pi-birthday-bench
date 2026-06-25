@@ -33,6 +33,13 @@ CPUマルチスレッドで実行する場合:
 cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cpu-multi --threads 12
 ```
 
+backend比較用に、targetが見つかっても `--max-digits` まで走り切る場合:
+
+```bash
+cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cpu-single --benchmark-only
+cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cpu-multi --threads 12 --benchmark-only
+```
+
 進捗を抑制する場合:
 
 ```bash
@@ -40,12 +47,6 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 20240628 --max-dig
 ```
 
 通常実行では、phaseとchunk単位の進捗をstderrに出します。`backend`、`target`、現在の `range`、`digits_computed`、`elapsed_seconds`、`digits_per_second`、`chunk`、`threads` を含みます。`--json` 指定時と `--no-progress` 指定時はprogressを出しません。
-
-targetが見つかっても `--max-digits` まで走り切る場合:
-
-```bash
-cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cpu-single --benchmark-only
-```
 
 JSONだけを標準出力に出す場合:
 
@@ -87,6 +88,24 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
 ```
 
 現時点では `threads` は `cpu-multi` の場合のみ数値になり、`cpu-single` では `null` です。`cpu_model`、`logical_cpu_count`、`physical_cpu_count`、`memory_total_mb`、`memory_peak_mb` は取得できない環境では `null` です。GPUは未実装のため `gpu_role` は `none` です。`--verify` 未指定時の `verification_status` は `skipped`、検証成功時は `passed` です。
+
+### Result fields
+
+- `target`: CLIで指定した `YYYYMMDD` の探索対象です。
+- `found`: `--max-digits` の範囲内でtargetが見つかったかどうかです。
+- `first_position`: targetが最初に現れた小数部の1始まり位置です。整数部の `3` は数えません。未発見時は `null` です。
+- `backend`: 実行に使ったbackendです。
+- `algorithm`: pi計算アルゴリズムです。現時点では `chudnovsky_binary_splitting` です。
+- `digits_computed`: 計算・検索対象にした小数部の桁数です。
+- `elapsed_seconds`: job全体の実行秒数です。
+- `digits_per_second`: `digits_computed / elapsed_seconds` で計算した処理速度です。benchmark-onlyでは最後まで走り切った全体速度になります。
+- `chunks_processed`: 検索で処理したchunk数です。
+- `threads`: `cpu-multi` で使ったスレッド数です。`cpu-single` では `null` です。
+- `cpu_model` / `logical_cpu_count` / `physical_cpu_count`: 取得できたCPU情報です。取得できない値は `null` です。
+- `gpu_name`: GPU backend用のフィールドです。現時点では `null` です。
+- `gpu_role`: GPUの役割です。CPU backendでは `none` です。
+- `memory_total_mb` / `memory_peak_mb`: 取得できたメモリ情報です。取得できない値は `null` です。
+- `verification_status`: `skipped`、`passed`、`failed` のいずれかです。`--verify` 未指定時は `skipped` です。
 
 利用可能なbackend一覧を確認する場合:
 
