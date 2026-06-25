@@ -225,6 +225,7 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - progress reporting
 - system information collection
 - result schema documentation and benchmark examples
+- GPU compute limitation documentation
 
 未実装:
 
@@ -248,15 +249,15 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - #11 Add progress reporting
 - #12 Add system information collection
 - #20 Add result schema and benchmark examples
+- #16 Document GPU compute limitations
 
 #1 に元々含まれていた `--json`、`--benchmark-only`、`--threads`、`--list-backends`、`--verify` は、個別Issueで追跡する。
 
 ## 残Issueの優先順位
 
-1. #16 Document GPU compute limitations
-2. #15 Implement CUDA search-only prototype
-3. #17 Research CUDA compute backend
-4. #18 Research AMD GPU support
+1. #15 Implement CUDA search-only prototype
+2. #17 Research CUDA compute backend
+3. #18 Research AMD GPU support
 
 #10 を先に実装した理由は、benchmark-only、cpu-multi、GPU比較の前に出力schemaを固定しておくためである。測定結果の比較形式が先に安定していれば、後続Issueの検証とREADME例が揺れにくい。
 
@@ -278,7 +279,9 @@ backend abstraction はコード上では導入済みである。GitHub Issue #7
 
 #20 を #12 の次に実装した理由は、JSON、benchmark-only、CPU multi、verify、progress、system info が入った段階で、READMEから実行例と結果フィールドの意味を確認できるようにするためである。
 
-次の実装候補は #16 document GPU compute limitations とする。GPU backend はstubまで入っているため、実装に進む前に `cuda-search-only` と `cuda-compute` の違い、比較時の注意、未実装範囲をREADME/docsで明確にする。
+#16 を #20 の次に実装した理由は、GPU backend がstubまで入っている段階で、`cuda-search-only` と `cuda-compute` の違い、比較時の注意、未実装範囲をREADMEで明確にするためである。
+
+残るIssueはGPU実装またはGPU調査である。#15 はCUDA実機とCUDA toolchainが必要になる可能性が高く、#17 と #18 は調査文書として扱う。
 
 GPUは後回しにする。現時点では CPU single、JSON schema、benchmark-only、backend discovery、backend selector/stub が先に必要であり、GPU実装に踏み込むと進捗、検証、ビルド環境、結果比較の論点が同時に増えるためである。
 

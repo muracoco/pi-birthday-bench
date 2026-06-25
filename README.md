@@ -121,6 +121,22 @@ GPU系backendはstubとしてCLI上で選択できますが、現時点では明
 cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cuda-compute
 ```
 
+## GPU acceleration scope
+
+GPU accelerationは、どの処理をGPUに載せるかで意味が変わります。このプロジェクトでは結果の `gpu_role` で区別します。
+
+| Mode | pi calculation | Pattern search | `gpu_role` | Status |
+| --- | --- | --- | --- | --- |
+| `cpu-single` | CPU single-thread | CPU | `none` | implemented |
+| `cpu-multi` | CPU multi-thread | CPU | `none` | implemented |
+| `cuda-search-only` | CPU | CUDA GPU | `search_only` | not implemented |
+| `cuda-compute` | CUDA GPU | GPU or CPU | `pi_compute` | not implemented |
+| `hip` / `opencl` / `vulkan` | undecided | undecided | `unavailable` | not implemented |
+
+`cuda-search-only` は、pi digitsの計算自体をGPU化するmodeではありません。CPUでpiを計算し、検索だけをGPUへ渡す想定です。そのため、`cuda-search-only` の結果を `cpu-multi` と比較するときは、「pi計算を含む全体ベンチマーク」と「検索部分だけをGPU化した試作」を同じ意味の高速化として扱わないでください。
+
+`cuda-compute` はpi計算本体のGPU化を表す予定ですが、現時点では未実装です。多倍長整数演算、binary splitting、メモリ転送、CPU/GMP実装との差分が大きいため、安定版の完了条件には含めません。
+
 ## GUI usage
 
 GUIは `eframe` / `egui` を使うRust-native GUIです。CLIをサブプロセス起動せず、CLIと同じ中核ジョブ処理を呼びます。
