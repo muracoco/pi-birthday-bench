@@ -4,6 +4,7 @@ use std::thread;
 use std::time::Instant;
 
 use eframe::egui;
+use pi_birthday_bench::backend::SELECTABLE_BACKENDS;
 use pi_birthday_bench::date::validate_yyyymmdd;
 use pi_birthday_bench::job::run_job;
 use pi_birthday_bench::result::{BackendMode, BenchmarkResult, ProgressEvent, RunConfig, RunPhase};
@@ -117,25 +118,12 @@ impl GuiApp {
             egui::ComboBox::from_id_salt("backend")
                 .selected_text(self.selected_backend.as_str())
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(
-                        &mut self.selected_backend,
-                        BackendMode::CpuSingle,
-                        "cpu-single",
-                    );
-                    ui.add_enabled(false, egui::Button::new("cpu-multi"));
-                    ui.selectable_value(
-                        &mut self.selected_backend,
-                        BackendMode::CudaCompute,
-                        "cuda-compute",
-                    );
-                    ui.selectable_value(
-                        &mut self.selected_backend,
-                        BackendMode::CudaSearchOnly,
-                        "cuda-search-only",
-                    );
-                    ui.selectable_value(&mut self.selected_backend, BackendMode::Hip, "hip");
-                    ui.selectable_value(&mut self.selected_backend, BackendMode::OpenCl, "opencl");
-                    ui.selectable_value(&mut self.selected_backend, BackendMode::Vulkan, "vulkan");
+                    for backend in SELECTABLE_BACKENDS {
+                        ui.selectable_value(&mut self.selected_backend, backend, backend.as_str());
+                        if backend == BackendMode::CpuSingle {
+                            ui.add_enabled(false, egui::Button::new("cpu-multi"));
+                        }
+                    }
                 });
             ui.label("gpu modes are stubs");
             ui.end_row();

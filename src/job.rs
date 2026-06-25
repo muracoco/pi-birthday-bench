@@ -3,8 +3,9 @@ use std::time::Instant;
 
 use anyhow::{bail, Result};
 
-use crate::pi::compute_pi_fractional_digits;
+use crate::backend::{unavailable_backend_error, CpuSingleBackend, PiBackend};
 use crate::result::{BackendMode, BenchmarkResult, ProgressEvent, RunConfig, RunPhase};
+use crate::search::{search_pattern_with_options, SearchOptions};
 
 pub fn run_job<F>(
     config: RunConfig,
@@ -28,49 +29,35 @@ where
     }
 
     match config.backend {
-        BackendMode::CpuSingle => run_cpu_single(config, cancel_requested, emit),
-        BackendMode::CudaCompute | BackendMode::CudaSearchOnly => {
-            bail_gpu_backend(config.backend, cfg!(feature = "cuda"), "cuda")
+        BackendMode::CpuSingle => run_backend(config, &CpuSingleBackend, cancel_requested, emit),
+        BackendMode::CudaCompute
+        | BackendMode::CudaSearchOnly
+        | BackendMode::Hip
+        | BackendMode::OpenCl
+        | BackendMode::Vulkan => {
+            unavailable_backend_error(config.backend)?;
+            unreachable!("unavailable backend unexpectedly passed availability check")
         }
-        BackendMode::Hip => bail_gpu_backend(config.backend, cfg!(feature = "hip"), "hip"),
-        BackendMode::OpenCl => bail_gpu_backend(config.backend, cfg!(feature = "opencl"), "opencl"),
-        BackendMode::Vulkan => bail_gpu_backend(config.backend, cfg!(feature = "vulkan"), "vulkan"),
     }
 }
 
-fn bail_gpu_backend(
-    backend: BackendMode,
-    feature_enabled: bool,
-    feature: &str,
-) -> Result<BenchmarkResult> {
-    if feature_enabled {
-        bail!(
-            "backend '{}' is not implemented yet.\nhint: use --backend cpu-single",
-            backend.as_str()
-        );
-    }
-
-    bail!(
-        "backend '{}' is not available in this build.\nhint: rebuild with --features {} when this backend is implemented",
-        backend.as_str(),
-        feature
-    );
-}
-
-fn run_cpu_single<F>(
+fn run_backend<B, F>(
     config: RunConfig,
+    backend: &B,
     cancel_requested: &AtomicBool,
     mut emit: F,
 ) -> Result<BenchmarkResult>
 where
+    B: PiBackend,
     F: FnMut(ProgressEvent),
 {
+    debug_assert!(backend.is_available());
     let start = Instant::now();
 
     emit(ProgressEvent::PhaseChanged {
         phase: RunPhase::ComputingPi,
     });
-    let digits = compute_pi_fractional_digits(config.max_digits)?;
+    let digits = backend.compute_digits(config.max_digits)?;
     let elapsed_seconds = start.elapsed().as_secs_f64();
     emit(ProgressEvent::Progress {
         digits_computed: config.max_digits,
@@ -86,12 +73,14 @@ where
     emit(ProgressEvent::PhaseChanged {
         phase: RunPhase::Searching,
     });
-    let search = search_pattern_in_chunks_cancellable(
+    let search = search_pattern_with_options(
         &digits,
         &config.target,
-        config.chunk,
-        config.benchmark_only,
-        cancel_requested,
+        SearchOptions {
+            chunk_size: config.chunk,
+            benchmark_only: config.benchmark_only,
+        },
+        || cancel_requested.load(Ordering::Relaxed),
         |digits_computed| {
             let elapsed_seconds = start.elapsed().as_secs_f64();
             emit(ProgressEvent::Progress {
@@ -102,22 +91,23 @@ where
         },
     );
 
-    let Some(search) = search else {
+    if search.cancelled {
         emit(ProgressEvent::Cancelled);
         bail!("cancelled");
-    };
+    }
 
     let elapsed_seconds = start.elapsed().as_secs_f64();
     let result = BenchmarkResult {
         target: config.target,
         found: search.first_position.is_some(),
         first_position: search.first_position,
-        backend: config.backend.as_str().to_owned(),
+        backend: backend.name().to_owned(),
         algorithm: "chudnovsky_binary_splitting".to_owned(),
         digits_computed: config.max_digits,
         elapsed_seconds,
         digits_per_second: speed(config.max_digits, elapsed_seconds),
         chunks_processed: search.chunks_processed,
+        gpu_role: backend.gpu_role().as_str().to_owned(),
     };
 
     emit(ProgressEvent::Completed(result.clone()));
@@ -132,101 +122,24 @@ fn speed(digits: usize, elapsed_seconds: f64) -> f64 {
     }
 }
 
-fn search_pattern_in_chunks_cancellable<F>(
-    digits: &str,
-    pattern: &str,
-    chunk_size: usize,
-    benchmark_only: bool,
-    cancel_requested: &AtomicBool,
-    mut progress: F,
-) -> Option<SearchOutcome>
-where
-    F: FnMut(usize),
-{
-    if pattern.is_empty() || chunk_size == 0 {
-        return Some(SearchOutcome {
-            first_position: None,
-            chunks_processed: 0,
-        });
-    }
-
-    let overlap_len = pattern.len().saturating_sub(1);
-    let mut offset = 0usize;
-    let mut carry = String::new();
-    let mut chunks_processed = 0usize;
-    let mut first_position = None;
-
-    while offset < digits.len() {
-        if cancel_requested.load(Ordering::Relaxed) {
-            return None;
-        }
-
-        let end = (offset + chunk_size).min(digits.len());
-        let chunk = &digits[offset..end];
-        let search_area = format!("{carry}{chunk}");
-        let search_area_start_position = offset + 1 - carry.len();
-
-        if first_position.is_none() {
-            if let Some(index) = search_area.find(pattern) {
-                first_position = Some(search_area_start_position + index);
-                chunks_processed += 1;
-                progress(end);
-
-                if !benchmark_only {
-                    return Some(SearchOutcome {
-                        first_position,
-                        chunks_processed,
-                    });
-                }
-            } else {
-                chunks_processed += 1;
-                progress(end);
-            }
-        } else {
-            chunks_processed += 1;
-            progress(end);
-        }
-
-        if overlap_len > 0 {
-            let keep = overlap_len.min(search_area.len());
-            carry = search_area[search_area.len() - keep..].to_owned();
-        }
-
-        offset = end;
-    }
-
-    Some(SearchOutcome {
-        first_position,
-        chunks_processed,
-    })
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct SearchOutcome {
-    first_position: Option<usize>,
-    chunks_processed: usize,
-}
-
 #[cfg(test)]
 mod tests {
-    use std::sync::atomic::AtomicBool;
-
-    use super::search_pattern_in_chunks_cancellable;
+    use crate::search::{search_pattern_with_options, SearchOptions};
 
     #[test]
     fn normal_search_stops_when_pattern_is_found() {
-        let cancelled = AtomicBool::new(false);
         let mut progress = Vec::new();
 
-        let outcome = search_pattern_in_chunks_cancellable(
+        let outcome = search_pattern_with_options(
             "1234567890",
             "34",
-            2,
-            false,
-            &cancelled,
+            SearchOptions {
+                chunk_size: 2,
+                benchmark_only: false,
+            },
+            || false,
             |digits_computed| progress.push(digits_computed),
-        )
-        .expect("not cancelled");
+        );
 
         assert_eq!(outcome.first_position, Some(3));
         assert_eq!(outcome.chunks_processed, 2);
@@ -235,18 +148,18 @@ mod tests {
 
     #[test]
     fn benchmark_only_continues_after_pattern_is_found() {
-        let cancelled = AtomicBool::new(false);
         let mut progress = Vec::new();
 
-        let outcome = search_pattern_in_chunks_cancellable(
+        let outcome = search_pattern_with_options(
             "1234567890",
             "34",
-            2,
-            true,
-            &cancelled,
+            SearchOptions {
+                chunk_size: 2,
+                benchmark_only: true,
+            },
+            || false,
             |digits_computed| progress.push(digits_computed),
-        )
-        .expect("not cancelled");
+        );
 
         assert_eq!(outcome.first_position, Some(3));
         assert_eq!(outcome.chunks_processed, 5);
