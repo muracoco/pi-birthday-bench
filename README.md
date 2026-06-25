@@ -36,6 +36,7 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 20240628 --max-dig
 ## GUI usage
 
 GUIは `eframe` / `egui` を使うRust-native GUIです。CLIをサブプロセス起動せず、CLIと同じ中核ジョブ処理を呼びます。
+GUI binaryは `gui` feature 有効時のみビルドされます。Windowsでは `wgpu` のDX12 backendを明示して、OpenGLが使えない環境でも起動できる構成にしています。
 
 ```bash
 cargo +stable-x86_64-pc-windows-gnu run --release --features gui --bin gui
