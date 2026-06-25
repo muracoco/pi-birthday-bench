@@ -53,6 +53,12 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
 
 `--json` 指定時、標準出力にはJSONだけを出します。進捗やphase表示は混ぜません。
 
+生成したpi digitsのprefixと、`cpu-multi` では短い範囲の `cpu-single` 比較も確認する場合:
+
+```bash
+cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cpu-multi --threads 12 --verify --json
+```
+
 出力例:
 
 ```json
@@ -75,7 +81,7 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
 }
 ```
 
-現時点では `threads` は `cpu-multi` の場合のみ数値になり、`cpu-single` では `null` です。`cpu_model`、`gpu_name`、`memory_peak_mb` は未取得なら `null` です。GPUは未実装のため `gpu_role` は `none`、`verify` は未実装のため `verification_status` は `skipped` です。
+現時点では `threads` は `cpu-multi` の場合のみ数値になり、`cpu-single` では `null` です。`cpu_model`、`gpu_name`、`memory_peak_mb` は未取得なら `null` です。GPUは未実装のため `gpu_role` は `none` です。`--verify` 未指定時の `verification_status` は `skipped`、検証成功時は `passed` です。
 
 利用可能なbackend一覧を確認する場合:
 
@@ -107,6 +113,7 @@ GUIでできること:
 - `cpu-single` / `cpu-multi` backendでのStart/Cancel
 - GPU stub backendの選択と未実装エラー表示
 - Benchmark only mode
+- Verify
 - status、phase、elapsed seconds、digits/sec、progress barの表示
 - resultの表示
 - result text / JSON のコピー
@@ -116,7 +123,6 @@ GUIでまだできないこと:
 - GUIでは `cpu-multi` のスレッド数を直接指定できず、論理CPU数が使われます
 - 厳密なリアルタイム桁進捗は未対応
 - `computing_pi` 中のキャンセルは、その計算フェーズ完了後に反映される場合があります
-- `verify` は未実装
 
 将来予定:
 
@@ -133,6 +139,7 @@ GUIでまだできないこと:
 - `--no-progress`: 進捗表示を抑制します。
 - `--json`: 結果をJSONだけで標準出力に出します。
 - `--benchmark-only`: targetが見つかっても `--max-digits` まで検索を続けます。
+- `--verify`: 生成したpi digitsのprefixを検証します。`cpu-multi` では短い範囲を `cpu-single` と比較します。
 - `--list-backends`: 利用可能なbackendと未実装backendの状態を表示します。`--target` と `--max-digits` は不要です。
 
 ## 注意

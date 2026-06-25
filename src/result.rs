@@ -79,6 +79,7 @@ pub struct RunConfig {
     pub backend: BackendMode,
     pub benchmark_only: bool,
     pub threads: Option<usize>,
+    pub verify: bool,
 }
 
 impl RunConfig {
@@ -97,6 +98,23 @@ impl RunConfig {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VerificationStatus {
+    Passed,
+    Failed,
+    Skipped,
+}
+
+impl VerificationStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Passed => "passed",
+            Self::Failed => "failed",
+            Self::Skipped => "skipped",
+        }
     }
 }
 
@@ -131,6 +149,7 @@ pub struct BenchmarkResult {
     pub chunks_processed: usize,
     pub threads: Option<usize>,
     pub gpu_role: String,
+    pub verification_status: VerificationStatus,
 }
 
 impl BenchmarkResult {
@@ -145,7 +164,8 @@ algorithm: {}
 digits_computed: {}
 elapsed_seconds: {:.6}
 digits_per_second: {:.1}
-chunks_processed: {}",
+chunks_processed: {}
+verification_status: {}",
             self.target,
             self.found,
             self.first_position
@@ -156,7 +176,8 @@ chunks_processed: {}",
             self.digits_computed,
             self.elapsed_seconds,
             self.digits_per_second,
-            self.chunks_processed
+            self.chunks_processed,
+            self.verification_status.as_str()
         );
 
         if let Some(threads) = self.threads {
@@ -184,7 +205,7 @@ impl BenchmarkResult {
             "gpu_name": null,
             "gpu_role": self.gpu_role.as_str(),
             "memory_peak_mb": null,
-            "verification_status": "skipped",
+            "verification_status": self.verification_status.as_str(),
         })
         .to_string()
     }
@@ -192,7 +213,7 @@ impl BenchmarkResult {
 
 #[cfg(test)]
 mod tests {
-    use super::{BackendMode, BenchmarkResult, RunConfig};
+    use super::{BackendMode, BenchmarkResult, RunConfig, VerificationStatus};
 
     #[test]
     fn run_config_accepts_valid_values() {
@@ -203,6 +224,7 @@ mod tests {
             backend: BackendMode::CpuSingle,
             benchmark_only: false,
             threads: None,
+            verify: false,
         };
 
         assert!(config.validate().is_ok());
@@ -217,6 +239,7 @@ mod tests {
             backend: BackendMode::CpuSingle,
             benchmark_only: false,
             threads: None,
+            verify: false,
         };
         assert!(invalid_date.validate().is_err());
 
@@ -227,6 +250,7 @@ mod tests {
             backend: BackendMode::CpuSingle,
             benchmark_only: false,
             threads: None,
+            verify: false,
         };
         assert!(zero_digits.validate().is_err());
 
@@ -237,6 +261,7 @@ mod tests {
             backend: BackendMode::CpuSingle,
             benchmark_only: false,
             threads: None,
+            verify: false,
         };
         assert!(zero_chunk.validate().is_err());
 
@@ -247,6 +272,7 @@ mod tests {
             backend: BackendMode::CpuMulti,
             benchmark_only: false,
             threads: Some(0),
+            verify: false,
         };
         assert!(zero_threads.validate().is_err());
     }
@@ -265,6 +291,7 @@ mod tests {
             chunks_processed: 20,
             threads: None,
             gpu_role: "none".to_owned(),
+            verification_status: VerificationStatus::Skipped,
         };
 
         let value: serde_json::Value = serde_json::from_str(&result.as_json()).expect("valid JSON");
@@ -282,5 +309,12 @@ mod tests {
         assert_eq!(value["gpu_role"], "none");
         assert!(value["memory_peak_mb"].is_null());
         assert_eq!(value["verification_status"], "skipped");
+    }
+
+    #[test]
+    fn verification_status_strings_are_stable() {
+        assert_eq!(VerificationStatus::Passed.as_str(), "passed");
+        assert_eq!(VerificationStatus::Failed.as_str(), "failed");
+        assert_eq!(VerificationStatus::Skipped.as_str(), "skipped");
     }
 }

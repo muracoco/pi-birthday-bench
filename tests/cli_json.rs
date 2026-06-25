@@ -129,6 +129,42 @@ fn cpu_multi_threads_one_matches_cpu_single_position() {
     assert_eq!(multi["found"], single["found"]);
 }
 
+#[test]
+fn verify_sets_json_status_to_passed() {
+    let value = run_json([
+        "--target",
+        "20240628",
+        "--max-digits",
+        "100",
+        "--backend",
+        "cpu-single",
+        "--verify",
+        "--json",
+    ]);
+
+    assert_eq!(value["verification_status"], "passed");
+}
+
+#[test]
+fn cpu_multi_verify_sets_json_status_to_passed() {
+    let value = run_json([
+        "--target",
+        "20240628",
+        "--max-digits",
+        "100",
+        "--backend",
+        "cpu-multi",
+        "--threads",
+        "2",
+        "--verify",
+        "--json",
+    ]);
+
+    assert_eq!(value["backend"], "cpu-multi");
+    assert_eq!(value["threads"], 2);
+    assert_eq!(value["verification_status"], "passed");
+}
+
 fn run_json<const N: usize>(args: [&str; N]) -> serde_json::Value {
     let output = Command::cargo_bin("pi-birthday-bench")
         .expect("binary exists")

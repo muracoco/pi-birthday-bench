@@ -4,8 +4,13 @@ use std::time::Instant;
 use anyhow::{bail, Result};
 
 use crate::backend::{unavailable_backend_error, CpuMultiBackend, CpuSingleBackend, PiBackend};
-use crate::result::{BackendMode, BenchmarkResult, ProgressEvent, RunConfig, RunPhase};
+use crate::pi::{compute_pi_fractional_digits, KNOWN_PI_FRACTIONAL_PREFIX};
+use crate::result::{
+    BackendMode, BenchmarkResult, ProgressEvent, RunConfig, RunPhase, VerificationStatus,
+};
 use crate::search::{search_pattern_with_options, SearchOptions};
+
+const CPU_MULTI_VERIFY_DIGITS: usize = 1_000;
 
 pub fn run_job<F>(
     mut config: RunConfig,
@@ -76,6 +81,13 @@ where
         bail!("cancelled");
     }
 
+    let verification_status = verify_generated_digits(&config, &digits)?;
+
+    if cancel_requested.load(Ordering::Relaxed) {
+        emit(ProgressEvent::Cancelled);
+        bail!("cancelled");
+    }
+
     emit(ProgressEvent::PhaseChanged {
         phase: RunPhase::Searching,
     });
@@ -117,6 +129,7 @@ where
             .threads
             .filter(|_| config.backend == BackendMode::CpuMulti),
         gpu_role: backend.gpu_role().as_str().to_owned(),
+        verification_status,
     };
 
     emit(ProgressEvent::Completed(result.clone()));
@@ -137,8 +150,37 @@ fn speed(digits: usize, elapsed_seconds: f64) -> f64 {
     }
 }
 
+fn verify_generated_digits(config: &RunConfig, digits: &str) -> Result<VerificationStatus> {
+    if !config.verify {
+        return Ok(VerificationStatus::Skipped);
+    }
+
+    verify_known_prefix(digits)?;
+
+    if config.backend == BackendMode::CpuMulti {
+        let compare_digits = digits.len().min(CPU_MULTI_VERIFY_DIGITS);
+        let single_digits = compute_pi_fractional_digits(compare_digits)?;
+        if digits[..compare_digits] != single_digits {
+            bail!("verification failed: cpu-multi output differs from cpu-single");
+        }
+    }
+
+    Ok(VerificationStatus::Passed)
+}
+
+fn verify_known_prefix(digits: &str) -> Result<()> {
+    let prefix_len = digits.len().min(KNOWN_PI_FRACTIONAL_PREFIX.len());
+    if digits[..prefix_len] != KNOWN_PI_FRACTIONAL_PREFIX[..prefix_len] {
+        bail!("verification failed: generated pi prefix does not match known prefix");
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
+    use super::verify_generated_digits;
+    use crate::result::{BackendMode, RunConfig, VerificationStatus};
     use crate::search::{search_pattern_with_options, SearchOptions};
 
     #[test]
@@ -179,5 +221,38 @@ mod tests {
         assert_eq!(outcome.first_position, Some(3));
         assert_eq!(outcome.chunks_processed, 5);
         assert_eq!(progress, vec![2, 4, 6, 8, 10]);
+    }
+
+    #[test]
+    fn verification_passes_for_known_prefix() {
+        let config = RunConfig {
+            target: "20240628".to_owned(),
+            max_digits: 10,
+            chunk: 10,
+            backend: BackendMode::CpuSingle,
+            benchmark_only: false,
+            threads: None,
+            verify: true,
+        };
+
+        assert_eq!(
+            verify_generated_digits(&config, "1415926535").unwrap(),
+            VerificationStatus::Passed
+        );
+    }
+
+    #[test]
+    fn verification_fails_for_bad_prefix() {
+        let config = RunConfig {
+            target: "20240628".to_owned(),
+            max_digits: 10,
+            chunk: 10,
+            backend: BackendMode::CpuSingle,
+            benchmark_only: false,
+            threads: None,
+            verify: true,
+        };
+
+        assert!(verify_generated_digits(&config, "0000000000").is_err());
     }
 }

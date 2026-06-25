@@ -129,7 +129,7 @@ impl GuiApp {
         ui.add_space(8.0);
         ui.horizontal(|ui| {
             ui.checkbox(&mut self.benchmark_only, "Benchmark only");
-            ui.add_enabled(false, egui::Checkbox::new(&mut self.verify, "Verify"));
+            ui.checkbox(&mut self.verify, "Verify");
         });
     }
 
@@ -346,6 +346,7 @@ impl GuiApp {
                         backend: self.selected_backend,
                         benchmark_only: self.benchmark_only,
                         threads: None,
+                        verify: self.verify,
                     })
                 }
                 _ => None,

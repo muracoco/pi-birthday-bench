@@ -8,6 +8,10 @@ const A: i64 = 13_591_409;
 const B: i64 = 545_140_134;
 const C3_OVER_24: i64 = 10_939_058_860_032_000;
 
+pub const KNOWN_PI_FRACTIONAL_PREFIX: &str = "\
+14159265358979323846264338327950288419716939937510\
+58209749445923078164062862089986280348253421170679";
+
 pub fn compute_pi_fractional_digits(requested_digits: usize) -> Result<String> {
     compute_pi_fractional_digits_with(requested_digits, |terms| binary_split(0, terms as u32))
 }
@@ -118,14 +122,17 @@ fn binary_split_parallel(a: u32, b: u32) -> (Integer, Integer, Integer) {
 
 #[cfg(test)]
 mod tests {
-    use super::{compute_pi_fractional_digits, compute_pi_fractional_digits_parallel};
+    use super::{
+        compute_pi_fractional_digits, compute_pi_fractional_digits_parallel,
+        KNOWN_PI_FRACTIONAL_PREFIX,
+    };
 
     #[test]
     fn first_100_fractional_digits_match_known_prefix() {
-        let expected = "\
-14159265358979323846264338327950288419716939937510\
-58209749445923078164062862089986280348253421170679";
-        assert_eq!(compute_pi_fractional_digits(100).unwrap(), expected);
+        assert_eq!(
+            compute_pi_fractional_digits(100).unwrap(),
+            KNOWN_PI_FRACTIONAL_PREFIX
+        );
     }
 
     #[test]
