@@ -70,3 +70,74 @@ fn cli_json_accepts_benchmark_only() {
     assert_eq!(value["chunks_processed"], 4);
     assert!(value.get("digits_per_second").is_some());
 }
+
+#[test]
+fn cpu_multi_json_matches_cpu_single_position_and_reports_threads() {
+    let single = run_json([
+        "--target",
+        "20240628",
+        "--max-digits",
+        "100",
+        "--backend",
+        "cpu-single",
+        "--json",
+    ]);
+    let multi = run_json([
+        "--target",
+        "20240628",
+        "--max-digits",
+        "100",
+        "--backend",
+        "cpu-multi",
+        "--threads",
+        "2",
+        "--json",
+    ]);
+
+    assert_eq!(multi["backend"], "cpu-multi");
+    assert_eq!(multi["threads"], 2);
+    assert_eq!(multi["first_position"], single["first_position"]);
+    assert_eq!(multi["found"], single["found"]);
+}
+
+#[test]
+fn cpu_multi_threads_one_matches_cpu_single_position() {
+    let single = run_json([
+        "--target",
+        "20240628",
+        "--max-digits",
+        "100",
+        "--backend",
+        "cpu-single",
+        "--json",
+    ]);
+    let multi = run_json([
+        "--target",
+        "20240628",
+        "--max-digits",
+        "100",
+        "--backend",
+        "cpu-multi",
+        "--threads",
+        "1",
+        "--json",
+    ]);
+
+    assert_eq!(multi["backend"], "cpu-multi");
+    assert_eq!(multi["threads"], 1);
+    assert_eq!(multi["first_position"], single["first_position"]);
+    assert_eq!(multi["found"], single["found"]);
+}
+
+fn run_json<const N: usize>(args: [&str; N]) -> serde_json::Value {
+    let output = Command::cargo_bin("pi-birthday-bench")
+        .expect("binary exists")
+        .args(args)
+        .output()
+        .expect("command runs");
+
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8(output.stdout).expect("stdout is UTF-8");
+    serde_json::from_str(&stdout).expect("stdout is JSON")
+}

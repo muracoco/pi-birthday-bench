@@ -27,6 +27,12 @@ rustup toolchain install stable-x86_64-pc-windows-gnu
 cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cpu-single
 ```
 
+CPUマルチスレッドで実行する場合:
+
+```bash
+cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-digits 1000000 --backend cpu-multi --threads 12
+```
+
 進捗を抑制する場合:
 
 ```bash
@@ -69,7 +75,7 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
 }
 ```
 
-現時点では `threads`、`cpu_model`、`gpu_name`、`memory_peak_mb` は未取得なら `null` です。GPUは未実装のため `gpu_role` は `none`、`verify` は未実装のため `verification_status` は `skipped` です。
+現時点では `threads` は `cpu-multi` の場合のみ数値になり、`cpu-single` では `null` です。`cpu_model`、`gpu_name`、`memory_peak_mb` は未取得なら `null` です。GPUは未実装のため `gpu_role` は `none`、`verify` は未実装のため `verification_status` は `skipped` です。
 
 利用可能なbackend一覧を確認する場合:
 
@@ -77,7 +83,7 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
 cargo +stable-x86_64-pc-windows-gnu run --release -- --list-backends
 ```
 
-現時点で実行可能なのは `cpu-single` のみです。GPU系backendは一覧に表示しますが、まだ実装されていません。
+現時点で実行可能なのは `cpu-single` と `cpu-multi` です。GPU系backendは一覧に表示しますが、まだ実装されていません。
 
 GPU系backendはstubとしてCLI上で選択できますが、現時点では明確なエラーを返します。通常ビルドではCUDA/HIP/OpenCL/Vulkan SDKを要求しません。
 
@@ -98,7 +104,7 @@ GUIでできること:
 
 - `YYYYMMDD` targetの入力とvalidation
 - `max_digits` と `chunk` の入力
-- `cpu-single` backendでのStart/Cancel
+- `cpu-single` / `cpu-multi` backendでのStart/Cancel
 - GPU stub backendの選択と未実装エラー表示
 - Benchmark only mode
 - status、phase、elapsed seconds、digits/sec、progress barの表示
@@ -107,14 +113,13 @@ GUIでできること:
 
 GUIでまだできないこと:
 
-- 実行可能なbackendは `cpu-single` のみ
+- GUIでは `cpu-multi` のスレッド数を直接指定できず、論理CPU数が使われます
 - 厳密なリアルタイム桁進捗は未対応
 - `computing_pi` 中のキャンセルは、その計算フェーズ完了後に反映される場合があります
 - `verify` は未実装
 
 将来予定:
 
-- `cpu-multi`
 - GPU backend selector
 
 ## オプション
@@ -122,7 +127,8 @@ GUIでまだできないこと:
 - `--target YYYYMMDD`: 探索対象。8桁の実在日付のみ有効です。
 - `--max-digits N`: 最大探索桁数。必須です。
 - `--chunk N`: 検索単位。既定値は `1000000` です。
-- `--backend cpu-single`: v0.1 では `cpu-single` のみ対応します。
+- `--backend cpu-single|cpu-multi`: CPU backendを選択します。
+- `--threads N`: `cpu-multi` 用のスレッド数です。未指定なら論理CPU数を使います。
 - `--backend cuda-compute|cuda-search-only|hip|opencl|vulkan`: stubとして選択可能ですが、現時点では未実装エラーを返します。
 - `--no-progress`: 進捗表示を抑制します。
 - `--json`: 結果をJSONだけで標準出力に出します。

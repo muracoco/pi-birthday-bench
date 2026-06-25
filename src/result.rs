@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackendMode {
     CpuSingle,
+    CpuMulti,
     CudaCompute,
     CudaSearchOnly,
     Hip,
@@ -12,6 +13,7 @@ impl BackendMode {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::CpuSingle => "cpu-single",
+            Self::CpuMulti => "cpu-multi",
             Self::CudaCompute => "cuda-compute",
             Self::CudaSearchOnly => "cuda-search-only",
             Self::Hip => "hip",
@@ -27,6 +29,7 @@ impl std::str::FromStr for BackendMode {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
             "cpu-single" => Ok(Self::CpuSingle),
+            "cpu-multi" => Ok(Self::CpuMulti),
             "cuda-compute" => Ok(Self::CudaCompute),
             "cuda-search-only" => Ok(Self::CudaSearchOnly),
             "hip" => Ok(Self::Hip),
@@ -75,6 +78,7 @@ pub struct RunConfig {
     pub chunk: usize,
     pub backend: BackendMode,
     pub benchmark_only: bool,
+    pub threads: Option<usize>,
 }
 
 impl RunConfig {
@@ -87,6 +91,9 @@ impl RunConfig {
         }
         if self.chunk == 0 {
             anyhow::bail!("chunk must be greater than 0");
+        }
+        if self.threads == Some(0) {
+            anyhow::bail!("threads must be greater than 0");
         }
 
         Ok(())
@@ -122,12 +129,13 @@ pub struct BenchmarkResult {
     pub elapsed_seconds: f64,
     pub digits_per_second: f64,
     pub chunks_processed: usize,
+    pub threads: Option<usize>,
     pub gpu_role: String,
 }
 
 impl BenchmarkResult {
     pub fn as_text(&self) -> String {
-        format!(
+        let mut text = format!(
             "\
 target: {}
 found: {}
@@ -149,7 +157,13 @@ chunks_processed: {}",
             self.elapsed_seconds,
             self.digits_per_second,
             self.chunks_processed
-        )
+        );
+
+        if let Some(threads) = self.threads {
+            text.push_str(&format!("\nthreads: {threads}"));
+        }
+
+        text
     }
 }
 
@@ -165,7 +179,7 @@ impl BenchmarkResult {
             "elapsed_seconds": self.elapsed_seconds,
             "digits_per_second": self.digits_per_second,
             "chunks_processed": self.chunks_processed,
-            "threads": null,
+            "threads": self.threads,
             "cpu_model": null,
             "gpu_name": null,
             "gpu_role": self.gpu_role.as_str(),
@@ -188,6 +202,7 @@ mod tests {
             chunk: 10,
             backend: BackendMode::CpuSingle,
             benchmark_only: false,
+            threads: None,
         };
 
         assert!(config.validate().is_ok());
@@ -201,6 +216,7 @@ mod tests {
             chunk: 10,
             backend: BackendMode::CpuSingle,
             benchmark_only: false,
+            threads: None,
         };
         assert!(invalid_date.validate().is_err());
 
@@ -210,6 +226,7 @@ mod tests {
             chunk: 10,
             backend: BackendMode::CpuSingle,
             benchmark_only: false,
+            threads: None,
         };
         assert!(zero_digits.validate().is_err());
 
@@ -219,8 +236,19 @@ mod tests {
             chunk: 0,
             backend: BackendMode::CpuSingle,
             benchmark_only: false,
+            threads: None,
         };
         assert!(zero_chunk.validate().is_err());
+
+        let zero_threads = RunConfig {
+            target: "20240628".to_owned(),
+            max_digits: 100,
+            chunk: 10,
+            backend: BackendMode::CpuMulti,
+            benchmark_only: false,
+            threads: Some(0),
+        };
+        assert!(zero_threads.validate().is_err());
     }
 
     #[test]
@@ -235,6 +263,7 @@ mod tests {
             elapsed_seconds: 12.34,
             digits_per_second: 1_620_745.5,
             chunks_processed: 20,
+            threads: None,
             gpu_role: "none".to_owned(),
         };
 

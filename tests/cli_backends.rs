@@ -14,7 +14,7 @@ fn list_backends_does_not_require_target_or_max_digits() {
 
     assert!(stdout.contains("available backends:"));
     assert!(stdout.contains("- cpu-single: available"));
-    assert!(stdout.contains("- cpu-multi: unavailable, not implemented"));
+    assert!(stdout.contains("- cpu-multi: available"));
     assert!(stdout.contains("- cuda-compute: unavailable, build with --features cuda"));
     assert!(stdout.contains("- cuda-search-only: unavailable, build with --features cuda"));
     assert!(stdout.contains("- hip: unavailable, build with --features hip"));

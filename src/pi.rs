@@ -1,4 +1,5 @@
 use anyhow::{bail, Result};
+use rayon::ThreadPoolBuilder;
 use rug::{ops::Pow, Complete, Integer};
 
 const DIGITS_PER_TERM: usize = 14;
@@ -8,13 +9,39 @@ const B: i64 = 545_140_134;
 const C3_OVER_24: i64 = 10_939_058_860_032_000;
 
 pub fn compute_pi_fractional_digits(requested_digits: usize) -> Result<String> {
+    compute_pi_fractional_digits_with(requested_digits, |terms| binary_split(0, terms as u32))
+}
+
+pub fn compute_pi_fractional_digits_parallel(
+    requested_digits: usize,
+    threads: usize,
+) -> Result<String> {
+    if threads == 0 {
+        bail!("threads must be greater than 0");
+    }
+    if threads == 1 {
+        return compute_pi_fractional_digits(requested_digits);
+    }
+
+    let pool = ThreadPoolBuilder::new().num_threads(threads).build()?;
+    pool.install(|| {
+        compute_pi_fractional_digits_with(requested_digits, |terms| {
+            binary_split_parallel(0, terms as u32)
+        })
+    })
+}
+
+fn compute_pi_fractional_digits_with<F>(requested_digits: usize, split: F) -> Result<String>
+where
+    F: FnOnce(usize) -> (Integer, Integer, Integer),
+{
     if requested_digits == 0 {
         return Ok(String::new());
     }
 
     let internal_digits = requested_digits + GUARD_DIGITS;
     let terms = internal_digits / DIGITS_PER_TERM + 2;
-    let (_, q, t) = binary_split(0, terms as u32);
+    let (_, q, t) = split(terms);
 
     if t == 0 {
         bail!("failed to compute pi: zero divisor");
@@ -70,9 +97,28 @@ fn binary_split(a: u32, b: u32) -> (Integer, Integer, Integer) {
     (p, q, t)
 }
 
+fn binary_split_parallel(a: u32, b: u32) -> (Integer, Integer, Integer) {
+    if b - a <= 16 {
+        return binary_split(a, b);
+    }
+
+    let mid = (a + b) / 2;
+    let ((p1, q1, t1), (p2, q2, t2)) = rayon::join(
+        || binary_split_parallel(a, mid),
+        || binary_split_parallel(mid, b),
+    );
+
+    let p: Integer = (&p1 * &p2).complete();
+    let q: Integer = (&q1 * &q2).complete();
+    let mut t: Integer = &q2 * t1;
+    t += &p1 * t2;
+
+    (p, q, t)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::compute_pi_fractional_digits;
+    use super::{compute_pi_fractional_digits, compute_pi_fractional_digits_parallel};
 
     #[test]
     fn first_100_fractional_digits_match_known_prefix() {
@@ -80,5 +126,21 @@ mod tests {
 14159265358979323846264338327950288419716939937510\
 58209749445923078164062862089986280348253421170679";
         assert_eq!(compute_pi_fractional_digits(100).unwrap(), expected);
+    }
+
+    #[test]
+    fn parallel_digits_match_single_thread_digits() {
+        assert_eq!(
+            compute_pi_fractional_digits_parallel(1_000, 2).unwrap(),
+            compute_pi_fractional_digits(1_000).unwrap()
+        );
+    }
+
+    #[test]
+    fn parallel_with_one_thread_matches_single_thread_digits() {
+        assert_eq!(
+            compute_pi_fractional_digits_parallel(1_000, 1).unwrap(),
+            compute_pi_fractional_digits(1_000).unwrap()
+        );
     }
 }
