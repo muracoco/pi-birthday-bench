@@ -71,6 +71,14 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 19930628 --max-dig
 
 現時点では `threads`、`cpu_model`、`gpu_name`、`memory_peak_mb` は未取得なら `null` です。GPUは未実装のため `gpu_role` は `none`、`verify` は未実装のため `verification_status` は `skipped` です。
 
+利用可能なbackend一覧を確認する場合:
+
+```bash
+cargo +stable-x86_64-pc-windows-gnu run --release -- --list-backends
+```
+
+現時点で実行可能なのは `cpu-single` のみです。GPU系backendは一覧に表示しますが、まだ実装されていません。
+
 ## GUI usage
 
 GUIは `eframe` / `egui` を使うRust-native GUIです。CLIをサブプロセス起動せず、CLIと同じ中核ジョブ処理を呼びます。
@@ -111,6 +119,7 @@ GUIでまだできないこと:
 - `--no-progress`: 進捗表示を抑制します。
 - `--json`: 結果をJSONだけで標準出力に出します。
 - `--benchmark-only`: targetが見つかっても `--max-digits` まで検索を続けます。
+- `--list-backends`: 利用可能なbackendと未実装backendの状態を表示します。`--target` と `--max-digits` は不要です。
 
 ## 注意
 

@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 use std::sync::atomic::AtomicBool;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use clap::{Parser, ValueEnum};
 
 use pi_birthday_bench::job::run_job;
@@ -24,11 +24,11 @@ impl From<BackendMode> for CoreBackendMode {
 #[command(name = "pi-birthday-bench")]
 #[command(about = "Find a YYYYMMDD pattern in the fractional digits of pi")]
 struct Cli {
-    #[arg(long)]
-    target: String,
+    #[arg(long, required_unless_present = "list_backends")]
+    target: Option<String>,
 
-    #[arg(long)]
-    max_digits: usize,
+    #[arg(long, required_unless_present = "list_backends")]
+    max_digits: Option<usize>,
 
     #[arg(long, default_value_t = 1_000_000)]
     chunk: usize,
@@ -44,6 +44,9 @@ struct Cli {
 
     #[arg(long)]
     benchmark_only: bool,
+
+    #[arg(long)]
+    list_backends: bool,
 }
 
 fn main() -> ExitCode {
@@ -58,9 +61,22 @@ fn main() -> ExitCode {
 
 fn run() -> Result<()> {
     let cli = Cli::parse();
+
+    if cli.list_backends {
+        println!("{}", list_backends_text());
+        return Ok(());
+    }
+
+    let Some(target) = cli.target else {
+        bail!("--target is required unless --list-backends is specified");
+    };
+    let Some(max_digits) = cli.max_digits else {
+        bail!("--max-digits is required unless --list-backends is specified");
+    };
+
     let config = RunConfig {
-        target: cli.target,
-        max_digits: cli.max_digits,
+        target,
+        max_digits,
         chunk: cli.chunk,
         backend: cli.backend.into(),
         benchmark_only: cli.benchmark_only,
@@ -96,4 +112,18 @@ fn run() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn list_backends_text() -> String {
+    [
+        "available backends:",
+        "- cpu-single: available",
+        "- cpu-multi: unavailable, not implemented",
+        "- cuda-compute: unavailable, build with --features cuda",
+        "- cuda-search-only: unavailable, build with --features cuda",
+        "- hip: unavailable, not implemented",
+        "- opencl: unavailable, not implemented",
+        "- vulkan: unavailable, not implemented",
+    ]
+    .join("\n")
 }
