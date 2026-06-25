@@ -39,3 +39,4 @@ jobs:
           which pkg-config
           which cargo
           cargo +stable-x86_64-pc-windows-gnu test
+          cargo +stable-x86_64-pc-windows-gnu build --release --features gui --bin gui
