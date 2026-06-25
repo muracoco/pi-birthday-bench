@@ -216,6 +216,7 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - backend metadata / backend listing の共通化
 - 検索ロジックの共通化
 - verification mode
+- progress reporting
 
 未実装:
 
@@ -237,18 +238,18 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - #7 Introduce backend abstraction
 - #8 Implement CPU multi backend
 - #19 Add verification mode
+- #11 Add progress reporting
 
 #1 に元々含まれていた `--json`、`--benchmark-only`、`--threads`、`--list-backends`、`--verify` は、個別Issueで追跡する。
 
 ## 残Issueの優先順位
 
-1. #11 Add progress reporting
-2. #12 Add system information collection
-3. #20 Add result schema and benchmark examples
-4. #16 Document GPU compute limitations
-5. #15 Implement CUDA search-only prototype
-6. #17 Research CUDA compute backend
-7. #18 Research AMD GPU support
+1. #12 Add system information collection
+2. #20 Add result schema and benchmark examples
+3. #16 Document GPU compute limitations
+4. #15 Implement CUDA search-only prototype
+5. #17 Research CUDA compute backend
+6. #18 Research AMD GPU support
 
 #10 を先に実装した理由は、benchmark-only、cpu-multi、GPU比較の前に出力schemaを固定しておくためである。測定結果の比較形式が先に安定していれば、後続Issueの検証とREADME例が揺れにくい。
 
@@ -264,7 +265,9 @@ backend abstraction はコード上では導入済みである。GitHub Issue #7
 
 #19 を #8 の次に実装した理由は、CPU single / multi の比較対象がそろった段階で prefix 検証と backend 間の簡易照合を入れると、以後の progress / system info / GPU 系作業で誤った測定結果を見つけやすくなるためである。
 
-次の実装候補は #11 progress reporting とする。現状の進捗は計算フェーズ完了後と検索chunk単位に限られるため、長時間実行時の見え方を整理する。
+#11 を #19 の次に実装した理由は、検証結果が出力schemaに入った後で、長時間実行中のstderr progressに backend、target、range、chunk、threads をそろえて表示するためである。
+
+次の実装候補は #12 system information collection とする。JSON/result schemaとprogressが固まったため、CPU modelやメモリ情報を結果に埋める段階に進める。
 
 GPUは後回しにする。現時点では CPU single、JSON schema、benchmark-only、backend discovery、backend selector/stub が先に必要であり、GPU実装に踏み込むと進捗、検証、ビルド環境、結果比較の論点が同時に増えるためである。
 

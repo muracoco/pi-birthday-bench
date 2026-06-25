@@ -107,6 +107,7 @@ fn run() -> Result<()> {
         verify: cli.verify,
     };
     let cancel_requested = AtomicBool::new(false);
+    let mut progress_config: Option<RunConfig> = None;
 
     let result = run_job(config, &cancel_requested, |event| {
         if cli.no_progress || cli.json {
@@ -114,16 +115,39 @@ fn run() -> Result<()> {
         }
 
         match event {
+            ProgressEvent::Started { config } => {
+                progress_config = Some(config);
+            }
             ProgressEvent::PhaseChanged { phase } => {
                 eprintln!("phase={}", phase.as_str());
             }
             ProgressEvent::Progress {
+                range_start,
+                range_end,
                 digits_computed,
                 elapsed_seconds,
                 digits_per_second,
             } => {
+                let backend = progress_config
+                    .as_ref()
+                    .map(|config| config.backend.as_str())
+                    .unwrap_or("unknown");
+                let target = progress_config
+                    .as_ref()
+                    .map(|config| config.target.as_str())
+                    .unwrap_or("unknown");
+                let chunk = progress_config
+                    .as_ref()
+                    .map(|config| config.chunk.to_string())
+                    .unwrap_or_else(|| "unknown".to_owned());
+                let threads = progress_config
+                    .as_ref()
+                    .and_then(|config| config.threads)
+                    .map(|threads| threads.to_string())
+                    .unwrap_or_else(|| "null".to_owned());
+
                 eprintln!(
-                    "digits_computed={digits_computed} elapsed={elapsed_seconds:.2}s speed={digits_per_second:.1} digits/sec"
+                    "backend={backend} target={target} range={range_start}..{range_end} digits_computed={digits_computed} elapsed_seconds={elapsed_seconds:.2} digits_per_second={digits_per_second:.1} chunk={chunk} threads={threads}"
                 );
             }
             _ => {}

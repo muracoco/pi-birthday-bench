@@ -17,6 +17,10 @@ fn cli_json_outputs_parseable_json_only() {
         .expect("command runs");
 
     assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "stderr must not contain progress when --json is set"
+    );
 
     let stdout = String::from_utf8(output.stdout).expect("stdout is UTF-8");
     assert!(

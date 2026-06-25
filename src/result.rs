@@ -127,6 +127,8 @@ pub enum ProgressEvent {
         phase: RunPhase,
     },
     Progress {
+        range_start: usize,
+        range_end: usize,
         digits_computed: usize,
         elapsed_seconds: f64,
         digits_per_second: f64,
