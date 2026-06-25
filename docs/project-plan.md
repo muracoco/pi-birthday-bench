@@ -201,6 +201,7 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - `--benchmark-only`
 - `--list-backends`
 - `--threads`
+- `--verify`
 - `YYYYMMDD` validation
 - CPU single による実行時 pi 計算
 - CPU multi による parallel binary splitting
@@ -214,10 +215,10 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - backend abstraction の導入
 - backend metadata / backend listing の共通化
 - 検索ロジックの共通化
+- verification mode
 
 未実装:
 
-- `--verify`
 - GPU backend implementation
 - system information collection
 
@@ -235,19 +236,19 @@ chunk 境界をまたぐ一致を見逃さないため、直前 chunk の末尾 
 - #14 Add GPU backend stubs and feature flags
 - #7 Introduce backend abstraction
 - #8 Implement CPU multi backend
+- #19 Add verification mode
 
 #1 に元々含まれていた `--json`、`--benchmark-only`、`--threads`、`--list-backends`、`--verify` は、個別Issueで追跡する。
 
 ## 残Issueの優先順位
 
-1. #19 Add verification mode
-2. #11 Add progress reporting
-3. #12 Add system information collection
-4. #20 Add result schema and benchmark examples
-5. #16 Document GPU compute limitations
-6. #15 Implement CUDA search-only prototype
-7. #17 Research CUDA compute backend
-8. #18 Research AMD GPU support
+1. #11 Add progress reporting
+2. #12 Add system information collection
+3. #20 Add result schema and benchmark examples
+4. #16 Document GPU compute limitations
+5. #15 Implement CUDA search-only prototype
+6. #17 Research CUDA compute backend
+7. #18 Research AMD GPU support
 
 #10 を先に実装した理由は、benchmark-only、cpu-multi、GPU比較の前に出力schemaを固定しておくためである。測定結果の比較形式が先に安定していれば、後続Issueの検証とREADME例が揺れにくい。
 
@@ -261,7 +262,9 @@ backend abstraction はコード上では導入済みである。GitHub Issue #7
 
 #8 を #7 の次に実装した理由は、backend abstraction と GPU stub が入った状態で CPU multi を追加すれば、CLI/job 分岐を大きく書き換えずに並列backendを検証できるためである。
 
-次の実装候補は #19 verification mode とする。CPU single / multi の比較対象がそろったため、次に prefix 検証と backend 間の簡易照合を入れると、以後の progress / system info / GPU 系作業で誤った測定結果を見つけやすくなる。
+#19 を #8 の次に実装した理由は、CPU single / multi の比較対象がそろった段階で prefix 検証と backend 間の簡易照合を入れると、以後の progress / system info / GPU 系作業で誤った測定結果を見つけやすくなるためである。
+
+次の実装候補は #11 progress reporting とする。現状の進捗は計算フェーズ完了後と検索chunk単位に限られるため、長時間実行時の見え方を整理する。
 
 GPUは後回しにする。現時点では CPU single、JSON schema、benchmark-only、backend discovery、backend selector/stub が先に必要であり、GPU実装に踏み込むと進捗、検証、ビルド環境、結果比較の論点が同時に増えるためである。
 

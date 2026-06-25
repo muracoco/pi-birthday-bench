@@ -63,6 +63,9 @@ struct Cli {
     benchmark_only: bool,
 
     #[arg(long)]
+    verify: bool,
+
+    #[arg(long)]
     threads: Option<usize>,
 
     #[arg(long)]
@@ -101,6 +104,7 @@ fn run() -> Result<()> {
         backend: cli.backend.into(),
         benchmark_only: cli.benchmark_only,
         threads: cli.threads,
+        verify: cli.verify,
     };
     let cancel_requested = AtomicBool::new(false);
 
