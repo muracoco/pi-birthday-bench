@@ -1,12 +1,22 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackendMode {
     CpuSingle,
+    CudaCompute,
+    CudaSearchOnly,
+    Hip,
+    OpenCl,
+    Vulkan,
 }
 
 impl BackendMode {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::CpuSingle => "cpu-single",
+            Self::CudaCompute => "cuda-compute",
+            Self::CudaSearchOnly => "cuda-search-only",
+            Self::Hip => "hip",
+            Self::OpenCl => "opencl",
+            Self::Vulkan => "vulkan",
         }
     }
 }
@@ -17,6 +27,11 @@ impl std::str::FromStr for BackendMode {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
             "cpu-single" => Ok(Self::CpuSingle),
+            "cuda-compute" => Ok(Self::CudaCompute),
+            "cuda-search-only" => Ok(Self::CudaSearchOnly),
+            "hip" => Ok(Self::Hip),
+            "opencl" => Ok(Self::OpenCl),
+            "vulkan" => Ok(Self::Vulkan),
             _ => Err(format!("unsupported backend '{value}'")),
         }
     }

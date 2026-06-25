@@ -29,7 +29,32 @@ where
 
     match config.backend {
         BackendMode::CpuSingle => run_cpu_single(config, cancel_requested, emit),
+        BackendMode::CudaCompute | BackendMode::CudaSearchOnly => {
+            bail_gpu_backend(config.backend, cfg!(feature = "cuda"), "cuda")
+        }
+        BackendMode::Hip => bail_gpu_backend(config.backend, cfg!(feature = "hip"), "hip"),
+        BackendMode::OpenCl => bail_gpu_backend(config.backend, cfg!(feature = "opencl"), "opencl"),
+        BackendMode::Vulkan => bail_gpu_backend(config.backend, cfg!(feature = "vulkan"), "vulkan"),
     }
+}
+
+fn bail_gpu_backend(
+    backend: BackendMode,
+    feature_enabled: bool,
+    feature: &str,
+) -> Result<BenchmarkResult> {
+    if feature_enabled {
+        bail!(
+            "backend '{}' is not implemented yet.\nhint: use --backend cpu-single",
+            backend.as_str()
+        );
+    }
+
+    bail!(
+        "backend '{}' is not available in this build.\nhint: rebuild with --features {} when this backend is implemented",
+        backend.as_str(),
+        feature
+    );
 }
 
 fn run_cpu_single<F>(

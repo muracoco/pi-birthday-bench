@@ -122,18 +122,22 @@ impl GuiApp {
                         BackendMode::CpuSingle,
                         "cpu-single",
                     );
-                    for backend in [
-                        "cpu-multi",
-                        "cuda-search-only",
+                    ui.add_enabled(false, egui::Button::new("cpu-multi"));
+                    ui.selectable_value(
+                        &mut self.selected_backend,
+                        BackendMode::CudaCompute,
                         "cuda-compute",
-                        "hip",
-                        "opencl",
-                        "vulkan",
-                    ] {
-                        ui.add_enabled(false, egui::Button::new(backend));
-                    }
+                    );
+                    ui.selectable_value(
+                        &mut self.selected_backend,
+                        BackendMode::CudaSearchOnly,
+                        "cuda-search-only",
+                    );
+                    ui.selectable_value(&mut self.selected_backend, BackendMode::Hip, "hip");
+                    ui.selectable_value(&mut self.selected_backend, BackendMode::OpenCl, "opencl");
+                    ui.selectable_value(&mut self.selected_backend, BackendMode::Vulkan, "vulkan");
                 });
-            ui.label("cpu-single only");
+            ui.label("gpu modes are stubs");
             ui.end_row();
         });
 
