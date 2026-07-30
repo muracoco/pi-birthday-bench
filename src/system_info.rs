@@ -104,7 +104,16 @@ mod tests {
     }
 
     #[test]
+    fn rejects_missing_or_invalid_kb_values() {
+        assert_eq!(parse_kb_value("MemTotal 1234 kB", "MemTotal"), None);
+        assert_eq!(parse_kb_value("MemTotal: unknown kB", "MemTotal"), None);
+        assert_eq!(parse_kb_value("MemTotal: kB", "MemTotal"), None);
+        assert_eq!(parse_kb_value("Other: 1234 kB", "MemTotal"), None);
+    }
+
+    #[test]
     fn rounds_kb_up_to_mb() {
+        assert_eq!(kb_to_mb(0), 0);
         assert_eq!(kb_to_mb(1), 1);
         assert_eq!(kb_to_mb(1024), 1);
         assert_eq!(kb_to_mb(1025), 2);

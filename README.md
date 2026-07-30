@@ -23,6 +23,17 @@ Windows で `rug` / GMP 系依存を使うため、現時点では MSYS2 MinGW �
 rustup toolchain install stable-x86_64-pc-windows-gnu
 ```
 
+テストとビルドは、MinGWのcompilerとruntime DLLを同じ環境から参照できるよう、MSYS2 MinGW64 shellで実行してください。通常のPowerShellからGNU版test binaryを直接起動すると、MSYS2のDLLがPATHにないため `STATUS_DLL_NOT_FOUND` になることがあります。
+
+```bash
+which pkg-config
+which cargo
+cargo +stable-x86_64-pc-windows-gnu test
+cargo +stable-x86_64-pc-windows-gnu build --release --features gui --bin gui
+```
+
+これは `.github/workflows/ci.yml` のWindows jobと同じ実行条件です。compile/linkまたはtest起動に失敗した場合は、コードのtest failureと判断する前に `which gcc` と `which cargo` がMSYS2 MinGW64環境を指していることを確認してください。
+
 ```bash
 cargo +stable-x86_64-pc-windows-gnu run --release -- --target 20000101 --max-digits 1000000 --backend cpu-single
 ```

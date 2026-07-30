@@ -14,16 +14,14 @@ use crate::system_info::collect_system_info;
 const CPU_MULTI_VERIFY_DIGITS: usize = 1_000;
 
 pub fn run_job<F>(
-    mut config: RunConfig,
+    config: RunConfig,
     cancel_requested: &AtomicBool,
     mut emit: F,
 ) -> Result<BenchmarkResult>
 where
     F: FnMut(ProgressEvent),
 {
-    if config.backend == BackendMode::CpuMulti && config.threads.is_none() {
-        config.threads = Some(default_thread_count());
-    }
+    let config = resolve_runtime_config(config);
 
     emit(ProgressEvent::Started {
         config: config.clone(),
@@ -42,7 +40,6 @@ where
         BackendMode::CpuSingle => run_backend(config, &CpuSingleBackend, cancel_requested, emit),
         BackendMode::CpuMulti => {
             let threads = config.threads.expect("cpu-multi threads are initialized");
-            config.threads = Some(threads);
             let backend = CpuMultiBackend { threads };
             run_backend(config, &backend, cancel_requested, emit)
         }
@@ -55,6 +52,13 @@ where
             unreachable!("unavailable backend unexpectedly passed availability check")
         }
     }
+}
+
+fn resolve_runtime_config(mut config: RunConfig) -> RunConfig {
+    if config.backend == BackendMode::CpuMulti && config.threads.is_none() {
+        config.threads = Some(default_thread_count());
+    }
+    config
 }
 
 fn run_backend<B, F>(
@@ -197,9 +201,185 @@ fn verify_known_prefix(digits: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::verify_generated_digits;
-    use crate::result::{BackendMode, RunConfig, VerificationStatus};
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    use super::{resolve_runtime_config, run_job, verify_generated_digits};
+    use crate::result::{BackendMode, ProgressEvent, RunConfig, RunPhase, VerificationStatus};
     use crate::search::{search_pattern_with_options, SearchOptions};
+
+    fn test_config(backend: BackendMode) -> RunConfig {
+        RunConfig {
+            target: "20000101".to_owned(),
+            max_digits: 100,
+            chunk: 25,
+            backend,
+            benchmark_only: false,
+            threads: (backend == BackendMode::CpuMulti).then_some(1),
+            verify: false,
+        }
+    }
+
+    fn event_name(event: &ProgressEvent) -> &'static str {
+        match event {
+            ProgressEvent::Started { .. } => "started",
+            ProgressEvent::PhaseChanged {
+                phase: RunPhase::Validating,
+            } => "validating",
+            ProgressEvent::PhaseChanged {
+                phase: RunPhase::ComputingPi,
+            } => "computing_pi",
+            ProgressEvent::PhaseChanged {
+                phase: RunPhase::Searching,
+            } => "searching",
+            ProgressEvent::PhaseChanged { .. } => "other_phase",
+            ProgressEvent::Progress { .. } => "progress",
+            ProgressEvent::Completed(_) => "completed",
+            ProgressEvent::Cancelled => "cancelled",
+            ProgressEvent::Failed(_) => "failed",
+        }
+    }
+
+    #[test]
+    fn successful_job_emits_ordered_phases_and_one_terminal_event() {
+        let cancel = AtomicBool::new(false);
+        let mut events = Vec::new();
+
+        let result = run_job(test_config(BackendMode::CpuSingle), &cancel, |event| {
+            events.push(event)
+        })
+        .expect("job succeeds");
+
+        let names = events.iter().map(event_name).collect::<Vec<_>>();
+        assert_eq!(names[0..3], ["started", "validating", "computing_pi"]);
+        assert!(names
+            .windows(2)
+            .any(|pair| pair == ["progress", "searching"]));
+        assert_eq!(names.last(), Some(&"completed"));
+        assert_eq!(
+            events
+                .iter()
+                .filter(|event| matches!(
+                    event,
+                    ProgressEvent::Completed(_) | ProgressEvent::Cancelled
+                ))
+                .count(),
+            1
+        );
+        assert_eq!(result.backend, "cpu-single");
+        assert_eq!(result.digits_computed, 100);
+    }
+
+    #[test]
+    fn cancelled_before_validation_emits_cancelled_once() {
+        let cancel = AtomicBool::new(true);
+        let mut events = Vec::new();
+
+        let error = run_job(test_config(BackendMode::CpuSingle), &cancel, |event| {
+            events.push(event)
+        })
+        .expect_err("job is cancelled");
+
+        assert_eq!(error.to_string(), "cancelled");
+        assert_eq!(
+            events.iter().map(event_name).collect::<Vec<_>>(),
+            ["started", "validating", "cancelled"]
+        );
+    }
+
+    #[test]
+    fn invalid_config_stops_after_validation_without_terminal_event() {
+        let cancel = AtomicBool::new(false);
+        let mut config = test_config(BackendMode::CpuSingle);
+        config.chunk = 0;
+        let mut events = Vec::new();
+
+        let error =
+            run_job(config, &cancel, |event| events.push(event)).expect_err("invalid config fails");
+
+        assert_eq!(error.to_string(), "chunk must be greater than 0");
+        assert_eq!(
+            events.iter().map(event_name).collect::<Vec<_>>(),
+            ["started", "validating"]
+        );
+    }
+
+    #[test]
+    fn unsupported_backend_does_not_start_pi_computation() {
+        let cancel = AtomicBool::new(false);
+        let mut events = Vec::new();
+
+        let error = run_job(test_config(BackendMode::CudaCompute), &cancel, |event| {
+            events.push(event)
+        })
+        .expect_err("GPU backend is unavailable");
+
+        assert!(error
+            .to_string()
+            .contains("backend 'cuda-compute' is not available"));
+        assert_eq!(
+            events.iter().map(event_name).collect::<Vec<_>>(),
+            ["started", "validating"]
+        );
+    }
+
+    #[test]
+    fn cpu_multi_without_threads_reports_resolved_thread_count() {
+        let cancel = AtomicBool::new(false);
+        let mut config = test_config(BackendMode::CpuMulti);
+        config.threads = None;
+
+        let result = run_job(config, &cancel, |_| {}).expect("job succeeds");
+
+        assert!(result.threads.is_some_and(|threads| threads > 0));
+    }
+
+    #[test]
+    fn runtime_config_only_defaults_cpu_multi_threads() {
+        let single = resolve_runtime_config(test_config(BackendMode::CpuSingle));
+        assert_eq!(single.threads, None);
+
+        let mut explicit_multi = test_config(BackendMode::CpuMulti);
+        explicit_multi.threads = Some(2);
+        assert_eq!(resolve_runtime_config(explicit_multi).threads, Some(2));
+
+        let mut default_multi = test_config(BackendMode::CpuMulti);
+        default_multi.threads = None;
+        assert!(resolve_runtime_config(default_multi)
+            .threads
+            .is_some_and(|threads| threads > 0));
+    }
+
+    #[test]
+    fn cancellation_requested_during_search_is_terminal() {
+        let cancel = AtomicBool::new(false);
+        let mut events = Vec::new();
+
+        let error = run_job(test_config(BackendMode::CpuSingle), &cancel, |event| {
+            if matches!(
+                event,
+                ProgressEvent::PhaseChanged {
+                    phase: RunPhase::Searching
+                }
+            ) {
+                cancel.store(true, Ordering::Relaxed);
+            }
+            events.push(event);
+        })
+        .expect_err("search is cancelled");
+
+        assert_eq!(error.to_string(), "cancelled");
+        assert_eq!(events.iter().map(event_name).next_back(), Some("cancelled"));
+        assert_eq!(
+            events
+                .iter()
+                .filter(|event| matches!(
+                    event,
+                    ProgressEvent::Completed(_) | ProgressEvent::Cancelled
+                ))
+                .count(),
+            1
+        );
+    }
 
     #[test]
     fn normal_search_stops_when_pattern_is_found() {

@@ -336,6 +336,33 @@ mod tests {
 
         let value: serde_json::Value = serde_json::from_str(&result.as_json()).expect("valid JSON");
 
+        let object = value.as_object().expect("JSON result is an object");
+        let mut keys = object.keys().map(String::as_str).collect::<Vec<_>>();
+        keys.sort_unstable();
+        assert_eq!(
+            keys,
+            [
+                "algorithm",
+                "backend",
+                "chunks_processed",
+                "cpu_model",
+                "digits_computed",
+                "digits_per_second",
+                "elapsed_seconds",
+                "first_position",
+                "found",
+                "gpu_name",
+                "gpu_role",
+                "logical_cpu_count",
+                "memory_peak_mb",
+                "memory_total_mb",
+                "physical_cpu_count",
+                "target",
+                "threads",
+                "verification_status",
+            ]
+        );
+
         assert_eq!(value["target"], "20000101");
         assert_eq!(value["found"], true);
         assert_eq!(value["first_position"], 12_345_678);
@@ -378,9 +405,36 @@ mod tests {
 
         let text = result.as_text();
 
-        assert!(text.contains("gpu_name: null"));
-        assert!(text.contains("gpu_role: none"));
-        assert!(text.contains("verification_status: skipped"));
+        let field_names = text
+            .lines()
+            .map(|line| line.split_once(':').expect("schema line").0)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            field_names,
+            [
+                "target",
+                "found",
+                "first_position",
+                "backend",
+                "algorithm",
+                "digits_computed",
+                "elapsed_seconds",
+                "digits_per_second",
+                "chunks_processed",
+                "threads",
+                "cpu_model",
+                "logical_cpu_count",
+                "physical_cpu_count",
+                "gpu_name",
+                "gpu_role",
+                "memory_total_mb",
+                "memory_peak_mb",
+                "verification_status",
+            ]
+        );
+        assert_eq!(text.lines().nth(13), Some("gpu_name: null"));
+        assert_eq!(text.lines().nth(14), Some("gpu_role: none"));
+        assert_eq!(text.lines().nth(17), Some("verification_status: skipped"));
     }
 
     #[test]
