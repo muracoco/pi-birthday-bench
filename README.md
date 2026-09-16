@@ -15,13 +15,56 @@ pi = 3.1415926535...
 
 つまり、小数第1位は `1`、小数第2位は `4`、小数第3位は `1` です。出力の `first_position` は、この小数部を1始まりで数えた位置です。
 
-## CLI usage
+## ビルドと最初の実行
 
-Windows で `rug` / GMP 系依存を使うため、現時点では MSYS2 MinGW と Rust GNU toolchain でのビルドを前提にしています。
+RustとGMPを使います。CLIだけならGUIやGPUのSDKは不要です。実行中に外部サイトへ通信することはなく、入力した日付を保存・送信しません。
+
+### Windows
+
+Windowsでは [MSYS2](https://www.msys2.org/) の **MINGW64** 環境とRust GNU toolchainを使います。PowerShellでRust GNU toolchainを用意します。
 
 ```powershell
 rustup toolchain install stable-x86_64-pc-windows-gnu
 ```
+
+次はMSYS2のMINGW64ターミナルで実行します。GMPの開発ファイルも必要です。MSYSやUCRT64用のパッケージを混ぜないでください。
+
+```bash
+pacman -S --needed mingw-w64-x86_64-gcc mingw-w64-x86_64-gmp mingw-w64-x86_64-pkgconf
+```
+
+リポジトリのフォルダへ移動して、環境を確認します。`gcc` と `pkg-config` は `/mingw64/bin/` のものを使います。`cargo` が見つからない場合は、WindowsでRustをインストールしたフォルダの `.cargo/bin` をこのターミナルのPATHへ追加してください。
+
+```bash
+echo "$MSYSTEM"
+which gcc
+which pkg-config
+which cargo
+cargo +stable-x86_64-pc-windows-gnu test --locked
+cargo +stable-x86_64-pc-windows-gnu run --locked --release -- --target 20000101 --max-digits 1000 --verify --json
+```
+
+`MSYSTEM` は `MINGW64` になります。通常のPowerShellからGNU版の実行ファイルを起動すると、GMPなどのDLLがPATHにないため `STATUS_DLL_NOT_FOUND` になることがあります。ビルドと実行は同じMINGW64環境で行ってください。
+
+### Linux
+
+Ubuntuなどでは、RustとGMP開発パッケージを用意してCLIを使えます。
+
+```bash
+sudo apt-get install libgmp-dev
+cargo test --locked
+cargo run --locked --release -- --target 20000101 --max-digits 1000 --verify --json
+```
+
+`gmp-mpfr-sys` が要求するGMPとシステムのGMPが一致しない場合は、ビルドエラーに表示されるバージョンを確認してください。古いディストリビューションでの動作は保証していません。LinuxのGUIは現在の検証対象外です。
+
+### 最初の結果
+
+上の1,000桁の例では `verification_status: "passed"` を確認します。`found: false` と `first_position: null` は「指定した範囲では見つからなかった」という正常な結果です。`passed` は既知の先頭桁の照合などに通ったことを示し、全桁を独立した手法で証明した意味ではありません。
+
+## CLI usage
+
+100万桁まで検索する場合:
 
 ```bash
 cargo +stable-x86_64-pc-windows-gnu run --release -- --target 20000101 --max-digits 1000000 --backend cpu-single
@@ -55,6 +98,8 @@ cargo +stable-x86_64-pc-windows-gnu run --release -- --target 20000101 --max-dig
 ```
 
 `--json` 指定時、標準出力にはJSONだけを出します。進捗やphase表示は混ぜません。
+
+比較時の条件、測定に含まれる処理、JSONの読み方は [ベンチマーク手順](docs/benchmarking.md) を参照してください。
 
 生成したpi digitsのprefixと、`cpu-multi` では短い範囲の `cpu-single` 比較も確認する場合:
 
@@ -185,3 +230,7 @@ GUIでまだできないこと:
 ## 注意
 
 8桁の数字列は、かなり深い桁まで現れない場合があります。そのため `--max-digits` は必須です。指定した桁数まで見つからない場合、結果は `found: false` になります。
+
+## ライセンス
+
+本リポジトリのコードは [MIT License](LICENSE) で公開しています。GMPやRustクレートなどの依存ライブラリには、それぞれのライセンスが適用されます。
