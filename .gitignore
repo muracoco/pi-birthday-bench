@@ -2,3 +2,15 @@
 *.pdb
 *.exe
 *.dll
+
+# Local credentials and private benchmark output
+.env
+.env.*
+!.env.example
+.ssh/
+private-keys/
+id_rsa
+id_ed25519
+*.p12
+*.pfx
+benchmark-results/

@@ -70,6 +70,8 @@ cargo run --locked --release -- --target 20000101 --max-digits 1000 --verify --j
 cargo +stable-x86_64-pc-windows-gnu run --release -- --target 20000101 --max-digits 1000000 --backend cpu-single
 ```
 
+使用例・GUI初期値の `20000101` は架空のサンプルです。実際の生年月日や個人の実行結果は公開リポジトリへ保存しないでください。公開前の確認は [SECURITY.md](SECURITY.md) を参照してください。
+
 CPUマルチスレッドで実行する場合:
 
 ```bash
